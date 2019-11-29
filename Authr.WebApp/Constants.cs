@@ -2,6 +2,11 @@ namespace Authr.WebApp
 {
     public static class Constants
     {
+        public static class ClaimTypes
+        {
+            public const string ObjectId = "oid";
+        }
+
         public static class RequestTypes
         {
             public const string AuthorizationCode = nameof(AuthorizationCode);

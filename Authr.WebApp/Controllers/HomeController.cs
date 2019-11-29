@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Authr.WebApp.Models;
 using IdentityModel;
 using IdentityModel.Client;
+using Authr.WebApp.Services;
 
 namespace Authr.WebApp.Controllers
 {
@@ -17,11 +18,13 @@ namespace Authr.WebApp.Controllers
         private static readonly IDictionary<string, AuthRequest> RequestCache = new Dictionary<string, AuthRequest>();
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
+        private readonly IUserConfigurationProvider userConfigurationProvider;
 
-        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider)
         {
             this.logger = logger;
             this.httpClientFactory = httpClientFactory;
+            this.userConfigurationProvider = userConfigurationProvider;
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
@@ -30,7 +33,7 @@ namespace Authr.WebApp.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             var model = new AuthViewModel();
             model.Request = new AuthRequest
@@ -39,6 +42,10 @@ namespace Authr.WebApp.Controllers
                 ResponseType = OidcConstants.ResponseTypes.IdToken,
                 Scope = OidcConstants.StandardScopes.OpenId
             };
+            if (this.User.Identity.IsAuthenticated)
+            {
+                model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
+            }
             return View(model);
         }
 
@@ -199,7 +206,7 @@ namespace Authr.WebApp.Controllers
 
         private IActionResult HandleAuthorizationCodeRequest(AuthRequest request)
         {
-            var urlBuilder = new RequestUrl(request.AuthorizeEndpoint);
+            var urlBuilder = new RequestUrl(request.AuthorizationEndpoint);
             request.RequestUrl = urlBuilder.CreateAuthorizeUrl(
                 clientId: request.ClientId,
                 responseType: request.ResponseType,

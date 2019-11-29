@@ -15,8 +15,8 @@
         <div class="tab-pane fade @(Model.Response == null ? "show active" : "")" id="tabMainPageRequest" role="tabpanel" aria-labelledby="tabMainHeaderRequest">
             <h5>Token Service</h5>
             <div class="form-group">
-                <label for="@nameof(AuthRequest.AuthorizeEndpoint)">Authorize Endpoint</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.AuthorizeEndpoint)" name="@nameof(AuthRequest.AuthorizeEndpoint)" value="@Model.Request.AuthorizeEndpoint" placeholder="The URL of the Authorize endpoint">
+                <label for="@nameof(AuthRequest.AuthorizationEndpoint)">Authorization Endpoint</label>
+                <input type="text" class="form-control" id="@nameof(AuthRequest.AuthorizationEndpoint)" name="@nameof(AuthRequest.AuthorizationEndpoint)" value="@Model.Request.AuthorizationEndpoint" placeholder="The URL of the Authorization Endpoint">
             </div>
             <div class="form-group">
                 <label for="@nameof(AuthRequest.TokenEndpoint)">Token Endpoint</label>

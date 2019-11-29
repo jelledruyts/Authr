@@ -5,7 +5,7 @@ namespace Authr.WebApp.Models
     public class AuthRequest
     {
         public string RequestType { get; set; }
-        public string AuthorizeEndpoint { get; set; }
+        public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
         public string ClientId { get; set; }
