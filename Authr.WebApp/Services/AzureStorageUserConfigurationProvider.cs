@@ -77,6 +77,7 @@ namespace Authr.WebApp.Services
 
         private static JsonSerializer GetJsonSerializer()
         {
+            // TODO: Switch to System.Text.Json (https://docs.microsoft.com/en-us/dotnet/api/system.text.json?view=netcore-3.0).
             return new JsonSerializer
             {
                 ContractResolver = new CamelCasePropertyNamesContractResolver()

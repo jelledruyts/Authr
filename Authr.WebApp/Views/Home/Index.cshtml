@@ -1,5 +1,5 @@
 ﻿@model AuthViewModel
-<form method="POST" asp-controller="Home" asp-action="Index">
+<form method="POST" action="">
     <ul class="nav nav-tabs" id="tabMainHeader" role="tablist">
         <li class="nav-item">
             <a class="nav-link @(Model.Response == null ? "active" : "")" id="tabMainHeaderRequest" data-toggle="tab" href="#tabMainPageRequest" role="tab" aria-controls="tabMainPageRequest" aria-selected="@(Model.Response == null ? "true" : "false")">Request</a>

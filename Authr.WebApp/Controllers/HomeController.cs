@@ -27,21 +27,20 @@ namespace Authr.WebApp.Controllers
             this.userConfigurationProvider = userConfigurationProvider;
         }
 
+        [Route(nameof(Error))]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        public async Task<IActionResult> Index()
+        [Route("")]
+        public async Task<IActionResult> Index(AuthRequest request)
         {
-            var model = new AuthViewModel();
-            model.Request = new AuthRequest
-            {
-                RequestType = Constants.RequestTypes.AuthorizationCode,
-                ResponseType = OidcConstants.ResponseTypes.IdToken,
-                Scope = OidcConstants.StandardScopes.OpenId
-            };
+            var model = new AuthViewModel { Request = request };
+            model.Request.RequestType = model.Request.RequestType ?? Constants.RequestTypes.AuthorizationCode;
+            model.Request.ResponseType = model.Request.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
+            model.Request.Scope = model.Request.Scope ?? OidcConstants.StandardScopes.OpenId;
             if (this.User.Identity.IsAuthenticated)
             {
                 model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
@@ -49,94 +48,95 @@ namespace Authr.WebApp.Controllers
             return View(model);
         }
 
-        [ActionName(nameof(Index))]
+        [Route("")]
         [HttpPost]
-        public async Task<IActionResult> IndexPost()
+        public async Task<IActionResult> Index(AuthRequest request, ExternalResponse response)
         {
             var model = new AuthViewModel();
             try
             {
-                if (this.Request.Form.ContainsKey("state"))
+                if (!string.IsNullOrWhiteSpace(request.RequestType))
+                {
+                    // This is a new auth request, determine which flow to execute.
+                    model.Request = request;
+                    request.RedirectUri = this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
+                    request.ResponseMode = OidcConstants.ResponseModes.FormPost;
+                    request.Nonce = Guid.NewGuid().ToString();
+                    request.State = Guid.NewGuid().ToString();
+                    if (request.RequestType == Constants.RequestTypes.AuthorizationCode)
+                    {
+                        return HandleAuthorizationCodeRequest(request);
+                    }
+                    else if (request.RequestType == Constants.RequestTypes.ClientCredentials)
+                    {
+                        model.Response = await HandleClientCredentialsRequestAsync(request);
+                    }
+                    else if (request.RequestType == Constants.RequestTypes.RefreshToken)
+                    {
+                        model.Response = await HandleRefreshTokenRequestAsync(request);
+                    }
+                    else if (request.RequestType == Constants.RequestTypes.DeviceCode)
+                    {
+                        model.Response = await HandleDeviceCodeRequestAsync(request);
+                    }
+                    else if (request.RequestType == Constants.RequestTypes.DeviceToken)
+                    {
+                        model.Response = await HandleDeviceTokenRequestAsync(request);
+                    }
+                    else if (request.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
+                    {
+                        model.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(request);
+                    }
+                }
+                else if (!string.IsNullOrWhiteSpace(response.State))
                 {
                     // We have a state correlation id, handle a response to an existing request.
                     // TODO: Check that the request belongs to the current user if signed in.
-                    var state = this.Request.Form["state"].First();
-                    if (RequestCache.ContainsKey(state))
+                    if (RequestCache.ContainsKey(response.State))
                     {
-                        model.Request = RequestCache[state];
-                        RequestCache.Remove(state);
+                        model.Request = RequestCache[response.State];
+                        RequestCache.Remove(response.State);
                     }
                     else
                     {
-                        this.logger.LogInformation($"Request not found for 'state' \"{state}\"");
+                        this.logger.LogWarning($"Request not found for 'state' \"{response.State}\"");
                         model.Request = new AuthRequest();
                     }
 
-                    if (this.Request.Form.ContainsKey("error"))
+                    if (!string.IsNullOrWhiteSpace(response.Error))
                     {
-                        model.Response = AuthResponse.FromError(this.Request.Form["error"].First(), this.Request.Form["error_description"].FirstOrDefault());
+                        model.Response = AuthResponse.FromError(response.Error, response.ErrorDescription);
                     }
-                    else if (this.Request.Form.ContainsKey("code"))
+                    else if (!string.IsNullOrWhiteSpace(response.AuthorizationCode))
                     {
-                        model.Request.AuthorizationCode = this.Request.Form["code"].First();
+                        model.Request.AuthorizationCode = response.AuthorizationCode;
                         model.Response = await HandleAuthorizationCodeResponseAsync(model.Request);
                     }
                     else
                     {
                         model.Response = new AuthResponse
                         {
-                            IdToken = this.Request.Form[OidcConstants.AuthorizeResponse.IdentityToken].FirstOrDefault(),
-                            AccessToken = this.Request.Form[OidcConstants.AuthorizeResponse.AccessToken].FirstOrDefault(),
-                            TokenType = this.Request.Form[OidcConstants.AuthorizeResponse.TokenType].FirstOrDefault(),
-                            RefreshToken = this.Request.Form[OidcConstants.AuthorizeResponse.RefreshToken].FirstOrDefault()
+                            IdToken = response.IdToken,
+                            AccessToken = response.AccessToken,
+                            TokenType = response.TokenType,
+                            RefreshToken = response.RefreshToken
                         };
-                    }
-                }
-                else
-                {
-                    // There is no state correlation id, this is a new request.
-                    var request = new AuthRequest();
-                    if (await this.TryUpdateModelAsync<AuthRequest>(request))
-                    {
-                        model.Request = request;
-                        request.RedirectUri = this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
-                        request.ResponseMode = OidcConstants.ResponseModes.FormPost;
-                        request.Nonce = Guid.NewGuid().ToString();
-                        request.State = Guid.NewGuid().ToString();
-                        if (request.RequestType == Constants.RequestTypes.AuthorizationCode)
-                        {
-                            return HandleAuthorizationCodeRequest(request);
-                        }
-                        else if (request.RequestType == Constants.RequestTypes.ClientCredentials)
-                        {
-                            model.Response = await HandleClientCredentialsRequestAsync(request);
-                        }
-                        else if (request.RequestType == Constants.RequestTypes.RefreshToken)
-                        {
-                            model.Response = await HandleRefreshTokenRequestAsync(request);
-                        }
-                        else if (request.RequestType == Constants.RequestTypes.DeviceCode)
-                        {
-                            model.Response = await HandleDeviceCodeRequestAsync(request);
-                        }
-                        else if (request.RequestType == Constants.RequestTypes.DeviceToken)
-                        {
-                            model.Response = await HandleDeviceTokenRequestAsync(request);
-                        }
-                        else if (request.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
-                        {
-                            model.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(request);
-                        }
                     }
                 }
             }
             catch (Exception exc)
             {
-                model.Request = model.Request ?? new AuthRequest();
                 model.Response = AuthResponse.FromException(exc);
             }
-            return View(model);
+            model.Request = model.Request ?? new AuthRequest();
+            if (this.User.Identity.IsAuthenticated)
+            {
+                model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
+            }
+            return View(nameof(Index), model);
         }
+
+        #region Helper Methods
 
         private async Task<AuthResponse> HandleClientCredentialsRequestAsync(AuthRequest request)
         {
@@ -237,5 +237,7 @@ namespace Authr.WebApp.Controllers
             });
             return AuthResponse.FromTokenResponse(response);
         }
+
+        #endregion
     }
 }
