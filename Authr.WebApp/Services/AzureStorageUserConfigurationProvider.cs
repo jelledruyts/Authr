@@ -1,16 +1,16 @@
 using System;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Authr.WebApp.Models;
 using Azure;
 using Azure.Storage.Blobs;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
 
 namespace Authr.WebApp.Services
 {
     public class AzureStorageUserConfigurationProvider : IUserConfigurationProvider
     {
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         private const string UserConfigurationFileName = "user-configuration.json";
         private readonly BlobServiceClient client;
 
@@ -30,12 +30,7 @@ namespace Authr.WebApp.Services
                 var configuration = await blob.DownloadAsync();
 
                 // Deerialize the JSON blob.
-                var serializer = GetJsonSerializer();
-                using (var streamReader = new StreamReader(configuration.Value.Content))
-                using (var jsonReader = new JsonTextReader(streamReader))
-                {
-                    return serializer.Deserialize<UserConfiguration>(jsonReader);
-                }
+                return await JsonSerializer.DeserializeAsync<UserConfiguration>(configuration.Value.Content, JsonSerializerOptions);
             }
             catch (RequestFailedException exc)
             {
@@ -63,25 +58,14 @@ namespace Authr.WebApp.Services
             var blob = containerClient.GetBlobClient(UserConfigurationFileName);
 
             // Serialize the JSON stream to blob storage.
-            var serializer = GetJsonSerializer();
             using (var stream = new MemoryStream())
             using (var streamWriter = new StreamWriter(stream))
-            using (var jsonWriter = new JsonTextWriter(streamWriter))
             {
-                serializer.Serialize(jsonWriter, userConfiguration);
-                await jsonWriter.FlushAsync();
+                await JsonSerializer.SerializeAsync<UserConfiguration>(stream, userConfiguration, JsonSerializerOptions);
+                await stream.FlushAsync();
                 stream.Position = 0;
                 await blob.UploadAsync(stream, overwrite: true);
             }
-        }
-
-        private static JsonSerializer GetJsonSerializer()
-        {
-            // TODO: Switch to System.Text.Json (https://docs.microsoft.com/en-us/dotnet/api/system.text.json?view=netcore-3.0).
-            return new JsonSerializer
-            {
-                ContractResolver = new CamelCasePropertyNamesContractResolver()
-            };
         }
     }
 }
