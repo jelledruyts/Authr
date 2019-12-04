@@ -6,14 +6,15 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Authr.WebApp.Models;
+using Authr.WebApp.Services;
 using IdentityModel;
 using IdentityModel.Client;
-using Authr.WebApp.Services;
 
 namespace Authr.WebApp.Controllers
 {
     public class HomeController : Controller
     {
+        // TODO: Use persistent store.
         private static readonly IDictionary<string, AuthRequest> RequestCache = new Dictionary<string, AuthRequest>();
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
@@ -34,9 +35,9 @@ namespace Authr.WebApp.Controllers
         }
 
         [Route("")]
-        public async Task<IActionResult> Index(AuthRequest request, ExternalResponse response)
+        public async Task<IActionResult> Index(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = await HandleAsync(request, response);
+            var model = await HandleAsync(requestParameters, responseParameters);
             if (this.User.Identity.IsAuthenticated)
             {
                 model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
@@ -46,9 +47,9 @@ namespace Authr.WebApp.Controllers
 
         [Route("")]
         [HttpPost]
-        public async Task<IActionResult> IndexPost(AuthRequest request, ExternalResponse response)
+        public async Task<IActionResult> IndexPost(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = await HandleAsync(request, response);
+            var model = await HandleAsync(requestParameters, responseParameters);
             if (!string.IsNullOrWhiteSpace(model.RedirectUrl))
             {
                 return Redirect(model.RedirectUrl);
@@ -65,105 +66,100 @@ namespace Authr.WebApp.Controllers
 
         [Route("api/request")]
         [HttpPost]
-        public Task<AuthViewModel> SubmitRequest([FromBody]AuthRequest request)
+        public Task<AuthViewModel> SubmitRequest([FromBody]AuthRequestParameters requestParameters)
         {
-            return HandleAsync(request, null);
+            return HandleAsync(requestParameters, null);
         }
 
         [Route("api/response")]
         [HttpPost]
-        public Task<AuthViewModel> SubmitResponse([FromBody]ExternalResponse response)
+        public Task<AuthViewModel> SubmitResponse([FromBody]AuthResponseParameters responseParameters)
         {
-            return HandleAsync(null, response);
+            return HandleAsync(null, responseParameters);
         }
 
         #region Helper Methods
 
-        private async Task<AuthViewModel> HandleAsync(AuthRequest request, ExternalResponse response)
+        private async Task<AuthViewModel> HandleAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
             // TODO: Add validation and throw exceptions with meaningful messages.
             // TODO: Cache complete "AuthFlow" with a single correlation id, and don't remove from cache until IsComplete = true.
             var model = new AuthViewModel();
             try
             {
-                if (response != null && !response.IsEmpty())
+                if (responseParameters != null && !responseParameters.IsEmpty())
                 {
                     // We have a response to a previously initiated request.
                     var originalRequest = default(AuthRequest);
-                    if (!string.IsNullOrWhiteSpace(response.State))
+                    if (!string.IsNullOrWhiteSpace(responseParameters.State))
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
                         // TODO: Check that the request belongs to the current user if signed in.
-                        if (RequestCache.ContainsKey(response.State))
+                        if (RequestCache.ContainsKey(responseParameters.State))
                         {
-                            originalRequest = RequestCache[response.State];
-                            model.Request = originalRequest.Clone();
-                            RequestCache.Remove(response.State);
+                            originalRequest = RequestCache[responseParameters.State];
+                            model.RequestParameters = originalRequest.Parameters;
+                            RequestCache.Remove(responseParameters.State);
                         }
                         else
                         {
-                            this.logger.LogWarning($"Original request not found for 'state' \"{response.State}\"");
+                            this.logger.LogWarning($"Original request not found for 'state' \"{responseParameters.State}\"");
                         }
                     }
 
-                    model.Response = AuthResponse.FromExternalResponse(response);
+                    model.Response = AuthResponse.FromAuthResponseParameters(responseParameters);
 
                     // If there is an authorization code response, redeem it immediately for the access token.
-                    if (!string.IsNullOrWhiteSpace(response.AuthorizationCode) && originalRequest != null)
+                    if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode) && originalRequest != null)
                     {
                         // TODO: Also track this new auth code request in the auth flow.
-                        var authorizationCodeRequest = originalRequest.Clone();
-                        authorizationCodeRequest.Nonce = Guid.NewGuid().ToString(); // TODO: Move into ctor for AuthRequest(AuthRequestParameters).
-                        authorizationCodeRequest.State = Guid.NewGuid().ToString();
-                        authorizationCodeRequest.TimeCreated = DateTimeOffset.UtcNow;
-                        authorizationCodeRequest.AuthorizationCode = response.AuthorizationCode;
-                        model.Request = authorizationCodeRequest.Clone();
-                        model.Response = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest);
+                        var authorizationCodeRequest = new AuthRequest(originalRequest.Parameters.Clone());
+                        authorizationCodeRequest.Parameters.AuthorizationCode = responseParameters.AuthorizationCode;
+                        model.RequestParameters = authorizationCodeRequest.Parameters;
+                        model.Response = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters);
                     }
                 }
-                else if (request != null && !string.IsNullOrWhiteSpace(request.RequestType))
+                else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
                     // This is a new auth request, determine which flow to execute.
-                    model.Request = request.Clone();
-                    request.Nonce = Guid.NewGuid().ToString();
-                    request.State = Guid.NewGuid().ToString();
-                    request.TimeCreated = DateTimeOffset.UtcNow;
-                    if (request.RequestType == Constants.RequestTypes.OpenIdConnect || request.RequestType == Constants.RequestTypes.Implicit || request.RequestType == Constants.RequestTypes.AuthorizationCode)
+                    model.RequestParameters = requestParameters;
+                    var request = new AuthRequest(requestParameters);
+                    if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
                         var authorizationEndpointRequestUrl = GetAuthorizationEndpointRequestUrl(request);
                         RequestCache[request.State] = request;
                         model.RedirectUrl = authorizationEndpointRequestUrl;
                     }
-                    else if (request.RequestType == Constants.RequestTypes.ClientCredentials)
+                    else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
                     {
-                        model.Response = await HandleClientCredentialsRequestAsync(request);
+                        model.Response = await HandleClientCredentialsRequestAsync(requestParameters);
                     }
-                    else if (request.RequestType == Constants.RequestTypes.RefreshToken)
+                    else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
                     {
-                        model.Response = await HandleRefreshTokenRequestAsync(request);
+                        model.Response = await HandleRefreshTokenRequestAsync(requestParameters);
                     }
-                    else if (request.RequestType == Constants.RequestTypes.DeviceCode)
+                    else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
                     {
-                        model.Response = await HandleDeviceCodeRequestAsync(request);
+                        model.Response = await HandleDeviceCodeRequestAsync(requestParameters);
                     }
-                    else if (request.RequestType == Constants.RequestTypes.DeviceToken)
+                    else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
                     {
-                        model.Response = await HandleDeviceTokenRequestAsync(request);
+                        model.Response = await HandleDeviceTokenRequestAsync(requestParameters);
                     }
-                    else if (request.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
+                    else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
                     {
-                        model.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(request);
+                        model.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
                     }
                 }
-                if (model.Request == null)
+                if (model.RequestParameters == null)
                 {
-                    model.Request = request ?? new AuthRequest();
-                    // Set sensible defaults if not provided.
-                    model.Request.RequestType = model.Request.RequestType ?? Constants.RequestTypes.OpenIdConnect;
-                    model.Request.ResponseType = model.Request.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
-                    model.Request.Scope = model.Request.Scope ?? OidcConstants.StandardScopes.OpenId;
-                    model.Request.ResponseMode = model.Request.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
-                    model.Request.RedirectUri = model.Request.RedirectUri ?? this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
+                    // Create new request parameters and set sensible defaults if not provided.
+                    model.RequestParameters = requestParameters ?? new AuthRequestParameters();
+                    model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
+                    model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
+                    model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
+                    model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
+                    model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
                 }
             }
             catch (Exception exc)
@@ -173,100 +169,100 @@ namespace Authr.WebApp.Controllers
             return model;
         }
 
-        private async Task<AuthResponse> HandleClientCredentialsRequestAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleClientCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
             {
-                Address = request.TokenEndpoint,
-                ClientId = request.ClientId,
-                ClientSecret = request.ClientSecret,
-                Scope = request.Scope
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Scope = requestParameters.Scope
             });
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private async Task<AuthResponse> HandleRefreshTokenRequestAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleRefreshTokenRequestAsync(AuthRequestParameters requestParameters)
         {
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestRefreshTokenAsync(new RefreshTokenRequest
             {
-                Address = request.TokenEndpoint,
-                ClientId = request.ClientId,
-                ClientSecret = request.ClientSecret,
-                Scope = request.Scope,
-                RefreshToken = request.RefreshToken
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Scope = requestParameters.Scope,
+                RefreshToken = requestParameters.RefreshToken
             });
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private async Task<AuthResponse> HandleDeviceCodeRequestAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleDeviceCodeRequestAsync(AuthRequestParameters requestParameters)
         {
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceAuthorizationAsync(new DeviceAuthorizationRequest
             {
-                Address = request.DeviceCodeEndpoint,
-                ClientId = request.ClientId,
-                Scope = request.Scope
+                Address = requestParameters.DeviceCodeEndpoint,
+                ClientId = requestParameters.ClientId,
+                Scope = requestParameters.Scope
             });
             return AuthResponse.FromDeviceCodeResponse(response);
         }
 
-        private async Task<AuthResponse> HandleDeviceTokenRequestAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleDeviceTokenRequestAsync(AuthRequestParameters requestParameters)
         {
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceTokenAsync(new DeviceTokenRequest
             {
-                Address = request.TokenEndpoint,
-                ClientId = request.ClientId,
-                DeviceCode = request.DeviceCode
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                DeviceCode = requestParameters.DeviceCode
             });
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private async Task<AuthResponse> HandleResourceOwnerPasswordCredentialsRequestAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleResourceOwnerPasswordCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestPasswordTokenAsync(new PasswordTokenRequest
             {
-                Address = request.TokenEndpoint,
-                ClientId = request.ClientId,
-                ClientSecret = request.ClientSecret,
-                Scope = request.Scope,
-                UserName = request.UserName,
-                Password = request.Password
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Scope = requestParameters.Scope,
+                UserName = requestParameters.UserName,
+                Password = requestParameters.Password
             });
             return AuthResponse.FromTokenResponse(response);
         }
 
         private string GetAuthorizationEndpointRequestUrl(AuthRequest request)
         {
-            var urlBuilder = new RequestUrl(request.AuthorizationEndpoint);
+            var urlBuilder = new RequestUrl(request.Parameters.AuthorizationEndpoint);
             return urlBuilder.CreateAuthorizeUrl(
-                clientId: request.ClientId,
-                responseType: request.ResponseType,
-                scope: request.Scope,
-                redirectUri: request.RedirectUri,
-                responseMode: request.ResponseMode,
+                clientId: request.Parameters.ClientId,
+                responseType: request.Parameters.ResponseType,
+                scope: request.Parameters.Scope,
+                redirectUri: request.Parameters.RedirectUri,
+                responseMode: request.Parameters.ResponseMode,
                 nonce: request.Nonce,
                 state: request.State
             );
         }
 
-        private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequest request)
+        private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequestParameters requestParameters)
         {
-            if (request.RequestType != Constants.RequestTypes.OpenIdConnect && request.RequestType != Constants.RequestTypes.AuthorizationCode)
+            if (requestParameters.RequestType != Constants.RequestTypes.OpenIdConnect && requestParameters.RequestType != Constants.RequestTypes.AuthorizationCode)
             {
                 throw new Exception("Mismatching request type for Authorization Code grant");
             }
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestAuthorizationCodeTokenAsync(new AuthorizationCodeTokenRequest
             {
-                Address = request.TokenEndpoint,
-                ClientId = request.ClientId,
-                ClientSecret = request.ClientSecret,
-                Code = request.AuthorizationCode,
-                RedirectUri = request.RedirectUri
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Code = requestParameters.AuthorizationCode,
+                RedirectUri = requestParameters.RedirectUri
             });
             return AuthResponse.FromTokenResponse(response);
         }

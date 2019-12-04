@@ -15,7 +15,7 @@ var app = new Vue({
     el: '#app',
     data: function() {
         return {
-            request: null,
+            requestParameters: null,
             response: null,
             userConfiguration: null,
             processing: false,
@@ -36,18 +36,18 @@ var app = new Vue({
                 document.getElementById(anchor).scrollIntoView();
             }, 0);
         },
-        prepareDeviceTokenRequest: function(deviceCode) {
-            this.request.requestType = '@Constants.RequestTypes.DeviceToken';
-            this.request.deviceCode = deviceCode;
-            this.scrollToAnchor('request-panel');
+        prepareDeviceTokenRequestParameters: function(deviceCode) {
+            this.requestParameters.requestType = '@Constants.RequestTypes.DeviceToken';
+            this.requestParameters.deviceCode = deviceCode;
+            this.scrollToAnchor('requestParameters-panel');
         },
-        prepareRefreshTokenRequest: function(refreshToken) {
-            this.request.requestType = '@Constants.RequestTypes.RefreshToken';
-            this.request.refreshToken = refreshToken;
-            this.scrollToAnchor('request-panel');
+        prepareRefreshTokenRequestParameters: function(refreshToken) {
+            this.requestParameters.requestType = '@Constants.RequestTypes.RefreshToken';
+            this.requestParameters.refreshToken = refreshToken;
+            this.scrollToAnchor('requestParameters-panel');
         },
-        submitRequest: function(request) {
-            this.submit('request', request);
+        submitRequest: function(requestParameters) {
+            this.submit('request', requestParameters);
         },
         submitResponse: function(response) {
             this.submit('response', response);
@@ -58,9 +58,9 @@ var app = new Vue({
             this.errorMessage = null;
             axios.post('/api/' + path, value)
                 .then(response => {
-                    // Make sure to also set the request, e.g. to get the request details for a previous
-                    // request that was now responded to through a URL #fragment (e.g. implicit flow).
-                    this.request = response.data.request;
+                    // Make sure to also set the requestParameters coming back, e.g. to get the request parameter details
+                    // for a previous request that was now responded to through a URL #fragment (e.g. implicit flow).
+                    this.requestParameters = response.data.requestParameters;
                     this.response = response.data.response;
                     if (response.data.redirectUrl) {
                         window.location.replace(response.data.redirectUrl);
@@ -77,7 +77,7 @@ var app = new Vue({
         }
     },
     created: function () {
-        this.request = @Html.Raw(Json.Serialize(Model.Request));
+        this.requestParameters = @Html.Raw(Json.Serialize(Model.RequestParameters));
         this.response = @Html.Raw(Json.Serialize(Model.Response));
         this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
         if (location.hash && location.hash.length > 1) {
@@ -92,105 +92,105 @@ var app = new Vue({
 }
 </section>
 <div id="app">
-    <div id="request-panel">
+    <div id="requestParameters-panel">
         <h3>Request</h3>
         <h5>Token Service</h5>
         <div class="form-group">
-            <label for="request-authorizationEndpoint">Authorization Endpoint</label>
-            <input type="text" class="form-control" id="request-authorizationEndpoint" v-model="request.authorizationEndpoint" placeholder="The URL of the Authorization Endpoint">
+            <label for="requestParameters-authorizationEndpoint">Authorization Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-authorizationEndpoint" v-model="requestParameters.authorizationEndpoint" placeholder="The URL of the Authorization Endpoint">
         </div>
         <div class="form-group">
-            <label for="request-tokenEndpoint">Token Endpoint</label>
-            <input type="text" class="form-control" id="request-tokenEndpoint" v-model="request.tokenEndpoint" placeholder="The URL of the Token endpoint">
+            <label for="requestParameters-tokenEndpoint">Token Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-tokenEndpoint" v-model="requestParameters.tokenEndpoint" placeholder="The URL of the Token endpoint">
         </div>
         <div class="form-group">
-            <label for="request-deviceCodeEndpoint">Device Code Endpoint</label>
-            <input type="text" class="form-control" id="request-deviceCodeEndpoint" v-model="request.deviceCodeEndpoint" placeholder="The URL of the Device Code endpoint">
+            <label for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" placeholder="The URL of the Device Code endpoint">
         </div>
         <h5>Client App</h5>
         <div class="form-group">
-            <label for="request-clientId">Client ID</label>
-            <input type="text" class="form-control" id="request-clientId" v-model="request.clientId" placeholder="The client ID of the app registered with the token service">
+            <label for="requestParameters-clientId">Client ID</label>
+            <input type="text" class="form-control" id="requestParameters-clientId" v-model="requestParameters.clientId" placeholder="The client ID of the app registered with the token service">
         </div>
         <div class="form-group">
-            <label for="request-clientSecret">Client Secret</label>
-            <input type="password" class="form-control" id="request-clientSecret" v-model="request.clientSecret" placeholder="The client secret of the app registered with the token service">
+            <label for="requestParameters-clientSecret">Client Secret</label>
+            <input type="password" class="form-control" id="requestParameters-clientSecret" v-model="requestParameters.clientSecret" placeholder="The client secret of the app registered with the token service">
         </div>
         <h5>Request</h5>
 
         <div class="mb-2">
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-openIdConnect">OpenID Connect</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-openIdConnect">OpenID Connect</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-implicit">OAuth 2.0 Implicit Grant</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-implicit">OAuth 2.0 Implicit Grant</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="request.requestType">
-                <label class="form-check-label" for="request-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
             </div>
         </div>
 
         <div class="form-group">
-            <label for="request-scope">Scope</label>
-            <input type="text" class="form-control" id="request-scope" v-model="request.scope" placeholder="The scope to request">
+            <label for="requestParameters-scope">Scope</label>
+            <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="The scope to request">
         </div>
 
-        <div v-if="request.requestType === '@Constants.RequestTypes.OpenIdConnect' || request.requestType === '@Constants.RequestTypes.Implicit' || request.requestType === '@Constants.RequestTypes.AuthorizationCode'">
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
             <div class="form-group">
-                <label for="request-responseType">Response Type (<code>id_token</code>, <code>token</code>, <code>code</code>, ...)</label>
-                <input type="text" class="form-control" id="request-responseType" v-model="request.responseType" placeholder="The response type">
+                <label for="requestParameters-responseType">Response Type (<code>id_token</code>, <code>token</code>, <code>code</code>, ...)</label>
+                <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" placeholder="The response type">
             </div>
             <div class="form-group">
-                <label for="request-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
-                <input type="text" class="form-control" id="request-responseMode" v-model="request.responseMode" placeholder="The response mode">
-            </div>
-        </div>
-
-        <div v-if="request.requestType === '@Constants.RequestTypes.RefreshToken'">
-            <div class="form-group">
-                <label for="request-deviceCode">Refresh Token</label>
-                <input type="text" class="form-control" id="request-refreshToken" v-model="request.refreshToken" placeholder="The refresh token">
+                <label for="requestParameters-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
+                <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="The response mode">
             </div>
         </div>
 
-        <div v-if="request.requestType === '@Constants.RequestTypes.DeviceToken'">
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
             <div class="form-group">
-                <label for="request-deviceCode">Device Code</label>
-                <input type="text" class="form-control" id="request-deviceCode" v-model="request.deviceCode" placeholder="The device code">
+                <label for="requestParameters-deviceCode">Refresh Token</label>
+                <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" placeholder="The refresh token">
             </div>
         </div>
 
-        <div v-if="request.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.DeviceToken'">
             <div class="form-group">
-                <label for="request-userName">User Name</label>
-                <input type="text" class="form-control" id="request-userName" v-model="request.userName" placeholder="The user name of the resource owner">
-            </div>
-            <div class="form-group">
-                <label for="request-password">Password</label>
-                <input type="password" class="form-control" id="request-password" v-model="request.password" placeholder="The password of the resource owner">
+                <label for="requestParameters-deviceCode">Device Code</label>
+                <input type="text" class="form-control" id="requestParameters-deviceCode" v-model="requestParameters.deviceCode" placeholder="The device code">
             </div>
         </div>
 
-        <button v-on:click="submitRequest(request)" class="btn btn-primary mt-1" v-bind:disabled="processing">
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
+            <div class="form-group">
+                <label for="requestParameters-userName">User Name</label>
+                <input type="text" class="form-control" id="requestParameters-userName" v-model="requestParameters.userName" placeholder="The user name of the resource owner">
+            </div>
+            <div class="form-group">
+                <label for="requestParameters-password">Password</label>
+                <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" placeholder="The password of the resource owner">
+            </div>
+        </div>
+
+        <button v-on:click="submitRequest(requestParameters)" class="btn btn-primary mt-1" v-bind:disabled="processing">
             Submit
             <i v-if="processing" class="fas fa-spinner fa-spin"></i>
         </button>
@@ -199,7 +199,7 @@ var app = new Vue({
             <div class="alert alert-danger">{{ errorMessage }}</div>
         </div>
 
-        <div><pre>{{ request }}</pre></div>
+        <div><pre>{{ requestParameters }}</pre></div>
     </div>
     <div id="response-panel" v-if="response" class="mt-3">
         <h2>Response</h2>
@@ -215,7 +215,7 @@ var app = new Vue({
         <div v-if="response.deviceCode">
             <h5 class="mt-2">Device Code</h5>
             <div>To sign in, use a web browser to open the page <a v-bind:href="response.deviceCodeVerificationUri" target="_blank">{{ response.deviceCodeVerificationUri }}</a> and enter the code <code>{{ response.deviceUserCode }}</code> to authenticate.</div>
-            <button v-on:click="prepareDeviceTokenRequest(response.deviceCode)" class="btn btn-primary">Prepare Device Token Request</button>
+            <button v-on:click="prepareDeviceTokenRequestParameters(response.deviceCode)" class="btn btn-primary">Prepare Device Token Request</button>
         </div>
 
         <div v-if="response.idToken">
@@ -235,7 +235,7 @@ var app = new Vue({
         <div v-if="response.refreshToken">
             <h5 class="mt-2">Refresh Token</h5>
             <div class="mt-2"><code>{{ response.refreshToken }}</code></div>
-            <button v-on:click="prepareRefreshTokenRequest(response.refreshToken)" class="btn btn-primary">Prepare Refresh Token Request</button>
+            <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary">Prepare Refresh Token Request</button>
         </div>
 
         <div v-if="response.raw">

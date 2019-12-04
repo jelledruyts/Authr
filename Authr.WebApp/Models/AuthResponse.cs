@@ -18,55 +18,55 @@ namespace Authr.WebApp.Models
         public string DeviceCodeVerificationUri { get; set; }
         public string Raw { get; set; }
 
-        public static AuthResponse FromException(Exception exception)
+        public static AuthResponse FromException(Exception value)
         {
             return new AuthResponse
             {
-                Error = exception.Message,
-                ErrorDescription = exception.ToString(),
-                Raw = exception.ToString()
+                Error = value.Message,
+                ErrorDescription = value.ToString(),
+                Raw = value.ToString()
             };
         }
 
-        public static AuthResponse FromExternalResponse(ExternalResponse response)
+        public static AuthResponse FromAuthResponseParameters(AuthResponseParameters value)
         {
             return new AuthResponse
             {
-                Error = response.Error,
-                ErrorDescription = response.ErrorDescription,
-                IdToken = response.IdToken,
-                AccessToken = response.AccessToken,
-                TokenType = response.TokenType,
-                RefreshToken = response.RefreshToken,
-                AuthorizationCode = response.AuthorizationCode
+                Error = value.Error,
+                ErrorDescription = value.ErrorDescription,
+                TokenType = value.TokenType,
+                IdToken = value.IdToken,
+                AccessToken = value.AccessToken,
+                RefreshToken = value.RefreshToken,
+                AuthorizationCode = value.AuthorizationCode
             };
         }
 
-        public static AuthResponse FromTokenResponse(TokenResponse response)
+        public static AuthResponse FromTokenResponse(TokenResponse value)
         {
             return new AuthResponse
             {
-                AccessToken = response.AccessToken,
-                IdToken = response.IdentityToken,
-                TokenType = response.TokenType,
-                RefreshToken = response.RefreshToken,
-                ExpiresIn = response.ExpiresIn,
-                Error = response.Error,
-                ErrorDescription = response.ErrorDescription,
-                Raw = response.Raw
+                Error = value.Error,
+                ErrorDescription = value.ErrorDescription,
+                AccessToken = value.AccessToken,
+                IdToken = value.IdentityToken,
+                TokenType = value.TokenType,
+                RefreshToken = value.RefreshToken,
+                ExpiresIn = value.ExpiresIn,
+                Raw = value.Raw
             };
         }
 
-        public static AuthResponse FromDeviceCodeResponse(DeviceAuthorizationResponse response)
+        public static AuthResponse FromDeviceCodeResponse(DeviceAuthorizationResponse value)
         {
             return new AuthResponse
             {
-                DeviceCode = response.DeviceCode,
-                DeviceUserCode = response.UserCode,
-                DeviceCodeVerificationUri = response.VerificationUri,
-                Error = response.Error,
-                ErrorDescription = response.ErrorDescription,
-                Raw = response.Raw
+                DeviceCode = value.DeviceCode,
+                DeviceUserCode = value.UserCode,
+                DeviceCodeVerificationUri = value.VerificationUri,
+                Error = value.Error,
+                ErrorDescription = value.ErrorDescription,
+                Raw = value.Raw
             };
         }
     }

@@ -4,11 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Authr.WebApp.Models
 {
-    // Note:
-    // The [BindProperty] attributes are for model binding (used with form and query parameters).
-    // The [JsonPropertyName] attributes are for deserialization performed by input formatters
-    // when JSON data is posted to API-style methods (whose parameters are annotated with [FromBody]).
-    public class ExternalResponse
+    public class AuthResponseParameters
     {
         [BindProperty(Name = OidcConstants.AuthorizeResponse.State)]
         [JsonPropertyName(OidcConstants.AuthorizeResponse.State)]
