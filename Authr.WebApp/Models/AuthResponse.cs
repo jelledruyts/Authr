@@ -8,17 +8,15 @@ namespace Authr.WebApp.Models
         public string Error { get; set; }
         public string ErrorDescription { get; set; }
         public string TokenType { get; set; }
-        public int ExpiresIn { get; set; }
+        public int? ExpiresIn { get; set; }
         public string IdToken { get; set; }
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
+        public string AuthorizationCode { get; set; }
         public string DeviceCode { get; set; }
         public string DeviceUserCode { get; set; }
         public string DeviceCodeVerificationUri { get; set; }
         public string Raw { get; set; }
-        public bool HasError => !string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription);
-        public bool HasToken => !string.IsNullOrWhiteSpace(this.AccessToken + this.IdToken + this.RefreshToken);
-        public bool HasDeviceCode => !string.IsNullOrWhiteSpace(this.DeviceCode + this.DeviceCodeVerificationUri);
 
         public static AuthResponse FromException(Exception exception)
         {
@@ -30,12 +28,17 @@ namespace Authr.WebApp.Models
             };
         }
 
-        public static AuthResponse FromError(string error, string errorDescription)
+        public static AuthResponse FromExternalResponse(ExternalResponse response)
         {
             return new AuthResponse
             {
-                Error = error,
-                ErrorDescription = errorDescription
+                Error = response.Error,
+                ErrorDescription = response.ErrorDescription,
+                IdToken = response.IdToken,
+                AccessToken = response.AccessToken,
+                TokenType = response.TokenType,
+                RefreshToken = response.RefreshToken,
+                AuthorizationCode = response.AuthorizationCode
             };
         }
 

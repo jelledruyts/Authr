@@ -2,6 +2,7 @@ using System;
 
 namespace Authr.WebApp.Models
 {
+    // TODO: Put actual user input in AuthRequestParameters class, and external response in AuthResponseParameters.
     public class AuthRequest
     {
         public string RequestType { get; set; }
@@ -21,7 +22,28 @@ namespace Authr.WebApp.Models
         public string DeviceCode { get; set; }
         public string Nonce { get; set; }
         public string State { get; set; }
-        public string RequestUrl { get; set; }
-        public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset? TimeCreated { get; set; }
+
+        public AuthRequest Clone()
+        {
+            return new AuthRequest
+            {
+                RequestType = this.RequestType,
+                AuthorizationEndpoint = this.AuthorizationEndpoint,
+                TokenEndpoint = this.TokenEndpoint,
+                DeviceCodeEndpoint = this.DeviceCodeEndpoint,
+                ClientId = this.ClientId,
+                ClientSecret = this.ClientSecret,
+                Scope = this.Scope,
+                ResponseType = this.ResponseType,
+                RedirectUri = this.RedirectUri,
+                ResponseMode = this.ResponseMode,
+                UserName = this.UserName,
+                Password = this.Password,
+                AuthorizationCode = this.AuthorizationCode,
+                RefreshToken = this.RefreshToken,
+                DeviceCode = this.DeviceCode
+            };
+        }
     }
 }

@@ -58,7 +58,7 @@ namespace Authr.WebApp
                 options.ExpireTimeSpan = TimeSpan.FromDays(30);
                 options.SlidingExpiration = true;
             });
-            services.AddControllersWithViews();
+            services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddRazorPages();
             services.AddHttpClient();
             services.AddSingleton<IUserConfigurationProvider>(new AzureStorageUserConfigurationProvider(Configuration.GetValue<string>("App:UserConfiguration:ConnectionString")));

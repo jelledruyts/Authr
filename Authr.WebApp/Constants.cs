@@ -9,6 +9,8 @@ namespace Authr.WebApp
 
         public static class RequestTypes
         {
+            public const string OpenIdConnect = nameof(OpenIdConnect);
+            public const string Implicit = nameof(Implicit);
             public const string AuthorizationCode = nameof(AuthorizationCode);
             public const string ClientCredentials = nameof(ClientCredentials);
             public const string RefreshToken = nameof(RefreshToken);

@@ -1,131 +1,246 @@
 ﻿@model AuthViewModel
-<form method="POST" action="">
-    <ul class="nav nav-tabs" id="tabMainHeader" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link @(Model.Response == null ? "active" : "")" id="tabMainHeaderRequest" data-toggle="tab" href="#tabMainPageRequest" role="tab" aria-controls="tabMainPageRequest" aria-selected="@(Model.Response == null ? "true" : "false")">Request</a>
-        </li>
-        @if (Model.Response != null)
-        {
-        <li class="nav-item">
-            <a class="nav-link active" id="tabMainHeaderResponse" data-toggle="tab" href="#tabMainPageResponse" role="tab" aria-controls="tabMainPageResponse" aria-selected="true">Response</a>
-        </li>
-        }
-    </ul>
-    <div class="tab-content" id="tabMainContent">
-        <div class="tab-pane fade @(Model.Response == null ? "show active" : "")" id="tabMainPageRequest" role="tabpanel" aria-labelledby="tabMainHeaderRequest">
-            <h5>Token Service</h5>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.AuthorizationEndpoint)">Authorization Endpoint</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.AuthorizationEndpoint)" name="@nameof(AuthRequest.AuthorizationEndpoint)" value="@Model.Request.AuthorizationEndpoint" placeholder="The URL of the Authorization Endpoint">
-            </div>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.TokenEndpoint)">Token Endpoint</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.TokenEndpoint)" name="@nameof(AuthRequest.TokenEndpoint)" value="@Model.Request.TokenEndpoint" placeholder="The URL of the Token endpoint">
-            </div>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.DeviceCodeEndpoint)">Device Code Endpoint</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.DeviceCodeEndpoint)" name="@nameof(AuthRequest.DeviceCodeEndpoint)" value="@Model.Request.DeviceCodeEndpoint" placeholder="The URL of the Device Code endpoint">
-            </div>
-            <h5>Client App</h5>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.ClientId)">Client ID</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.ClientId)" name="@nameof(AuthRequest.ClientId)" value="@Model.Request.ClientId" placeholder="The client ID of the app registered with the token service">
-            </div>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.ClientSecret)">Client Secret</label>
-                <input type="password" class="form-control" id="@nameof(AuthRequest.ClientSecret)" name="@nameof(AuthRequest.ClientSecret)" value="@Model.Request.ClientSecret" placeholder="The client secret of the app registered with the token service">
-            </div>
-            <h5>Request</h5>
-            <div class="form-group">
-                <label for="@nameof(AuthRequest.Scope)">Scope</label>
-                <input type="text" class="form-control" id="@nameof(AuthRequest.Scope)" name="@nameof(AuthRequest.Scope)" value="@Model.Request.Scope" placeholder="The scope to request">
-            </div>
+@section Scripts {
+<script type="text/javascript">
+toastr.options = {
+    'showMethod': 'show',
+    'hideMethod': 'hide'
+}
 
-            <ul class="nav nav-tabs" id="tabRequestHeader" role="tablist">
-                <li class="nav-item">
-                    <a class="nav-link @(Model.Request.RequestType == Constants.RequestTypes.AuthorizationCode ? "active" : "")" id="tabRequestHeaderAuthorizationCode" data-toggle="tab" href="#tabRequestPageAuthorizationCode" role="tab" aria-controls="tabRequestPageAuthorizationCode" aria-selected="true">Authorization Code</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(Model.Request.RequestType == Constants.RequestTypes.ClientCredentials ? "active" : "")" id="tabRequestHeaderClientCredentials" data-toggle="tab" href="#tabRequestPageClientCredentials" role="tab" aria-controls="tabRequestPageClientCredentials" aria-selected="false">Client Credentials</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(Model.Request.RequestType == Constants.RequestTypes.DeviceCode ? "active" : "")" id="tabRequestHeaderDeviceCode" data-toggle="tab" href="#tabRequestPageDeviceCode" role="tab" aria-controls="tabRequestPageDeviceCode" aria-selected="false">Device Code</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(Model.Request.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials ? "active" : "")" id="tabRequestHeaderResourceOwnerPasswordCredentials" data-toggle="tab" href="#tabRequestPageResourceOwnerPasswordCredentials" role="tab" aria-controls="tabRequestPageResourceOwnerPasswordCredentials" aria-selected="false">Resource Owner Password Credentials</a>
-                </li>
-            </ul>
-            <div class="tab-content" id="tabRequestContent">
-                <div class="tab-pane fade @(Model.Request.RequestType == Constants.RequestTypes.AuthorizationCode ? "show active" : "")" id="tabRequestPageAuthorizationCode" role="tabpanel" aria-labelledby="tabRequestHeaderAuthorizationCode">
-                    <div class="form-group">
-                        <label for="@nameof(AuthRequest.ResponseType)">Response Type</label>
-                        <input type="text" class="form-control" id="@nameof(AuthRequest.ResponseType)" name="@nameof(AuthRequest.ResponseType)" value="@Model.Request.ResponseType" placeholder="The response type">
-                    </div>
-                    <button type="submit" name="RequestType" value="@Constants.RequestTypes.AuthorizationCode" class="btn btn-primary">Sign In</button>
-                </div>
-                <div class="tab-pane fade @(Model.Request.RequestType == Constants.RequestTypes.ClientCredentials ? "show active" : "")" id="tabRequestPageClientCredentials" role="tabpanel" aria-labelledby="tabRequestHeaderClientCredentials">
-                    <button type="submit" name="RequestType" value="@Constants.RequestTypes.ClientCredentials" class="btn btn-primary">Request Token</button>
-                </div>
-                <div class="tab-pane fade @(Model.Request.RequestType == Constants.RequestTypes.DeviceCode ? "show active" : "")" id="tabRequestPageDeviceCode" role="tabpanel" aria-labelledby="tabRequestHeaderDeviceCode">
-                    <button type="submit" name="RequestType" value="@Constants.RequestTypes.DeviceCode" class="btn btn-primary">Request Device Code</button>
-                </div>
-                <div class="tab-pane fade @(Model.Request.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials ? "show active" : "")" id="tabRequestPageResourceOwnerPasswordCredentials" role="tabpanel" aria-labelledby="tabRequestHeaderResourceOwnerPasswordCredentials">
-                    <div class="form-group">
-                        <label for="@nameof(AuthRequest.UserName)">User Name</label>
-                        <input type="text" class="form-control" id="@nameof(AuthRequest.UserName)" name="@nameof(AuthRequest.UserName)" value="@Model.Request.UserName" placeholder="The user name of the resource owner">
-                    </div>
-                    <div class="form-group">
-                        <label for="@nameof(AuthRequest.Password)">Password</label>
-                        <input type="password" class="form-control" id="@nameof(AuthRequest.Password)" name="@nameof(AuthRequest.Password)" value="@Model.Request.Password" placeholder="The password of the resource owner">
-                    </div>
-                    <button type="submit" name="RequestType" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" class="btn btn-primary">Request Token</button>
-                </div>
+// TODO: Add client-side validation
+// If OpenIdConnect: check to make sure 'openid' is part of the requested scopes. See https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest.
+// If Implicit: check to make sure responseMode is null && responseType = 'token'; // https://tools.ietf.org/html/rfc6749#section-4.2.1
+// If Auth Code: check to make sure responseMode is null && responseType = 'code'; // https://tools.ietf.org/html/rfc6749#section-3.1.1
+
+var app = new Vue({
+    el: '#app',
+    data: function() {
+        return {
+            request: null,
+            response: null,
+            userConfiguration: null,
+            processing: false,
+            errorMessage: null,
+        }
+    },
+    watch: {
+        'response': function(oldValue, newValue) {
+            if (this.response) {
+                this.scrollToAnchor('response-panel');
+            }
+        }
+    },
+    methods: {
+        scrollToAnchor: function(anchor) {
+            setTimeout(() => {
+                // This is executed after rendering is complete; trigger a scroll to the anchor.
+                document.getElementById(anchor).scrollIntoView();
+            }, 0);
+        },
+        prepareDeviceTokenRequest: function(deviceCode) {
+            this.request.requestType = '@Constants.RequestTypes.DeviceToken';
+            this.request.deviceCode = deviceCode;
+            this.scrollToAnchor('request-panel');
+        },
+        prepareRefreshTokenRequest: function(refreshToken) {
+            this.request.requestType = '@Constants.RequestTypes.RefreshToken';
+            this.request.refreshToken = refreshToken;
+            this.scrollToAnchor('request-panel');
+        },
+        submitRequest: function(request) {
+            this.submit('request', request);
+        },
+        submitResponse: function(response) {
+            this.submit('response', response);
+        },
+        submit: function(path, value) {
+            this.response = null;
+            this.processing = true;
+            this.errorMessage = null;
+            axios.post('/api/' + path, value)
+                .then(response => {
+                    // Make sure to also set the request, e.g. to get the request details for a previous
+                    // request that was now responded to through a URL #fragment (e.g. implicit flow).
+                    this.request = response.data.request;
+                    this.response = response.data.response;
+                    if (response.data.redirectUrl) {
+                        window.location.replace(response.data.redirectUrl);
+                    }
+                })
+                .catch(error => {
+                    console.log(error);
+                    this.errorMessage = error.message;
+                    toastr.error(error.message);
+                })
+                .finally(_ => {
+                    this.processing = false;
+                });
+        }
+    },
+    created: function () {
+        this.request = @Html.Raw(Json.Serialize(Model.Request));
+        this.response = @Html.Raw(Json.Serialize(Model.Response));
+        this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
+        if (location.hash && location.hash.length > 1) {
+            // If there are parameters in the #fragment of the URL, this is likely an external auth response;
+            // send it to the back-end API for processing.
+            const urlFragment = location.hash.substr(1).split('&').reduce((prev, item) => Object.assign({[decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ')]: decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ')}, prev), {});
+            this.submitResponse(urlFragment);
+        }
+    }
+});
+</script>
+}
+</section>
+<div id="app">
+    <div id="request-panel">
+        <h3>Request</h3>
+        <h5>Token Service</h5>
+        <div class="form-group">
+            <label for="request-authorizationEndpoint">Authorization Endpoint</label>
+            <input type="text" class="form-control" id="request-authorizationEndpoint" v-model="request.authorizationEndpoint" placeholder="The URL of the Authorization Endpoint">
+        </div>
+        <div class="form-group">
+            <label for="request-tokenEndpoint">Token Endpoint</label>
+            <input type="text" class="form-control" id="request-tokenEndpoint" v-model="request.tokenEndpoint" placeholder="The URL of the Token endpoint">
+        </div>
+        <div class="form-group">
+            <label for="request-deviceCodeEndpoint">Device Code Endpoint</label>
+            <input type="text" class="form-control" id="request-deviceCodeEndpoint" v-model="request.deviceCodeEndpoint" placeholder="The URL of the Device Code endpoint">
+        </div>
+        <h5>Client App</h5>
+        <div class="form-group">
+            <label for="request-clientId">Client ID</label>
+            <input type="text" class="form-control" id="request-clientId" v-model="request.clientId" placeholder="The client ID of the app registered with the token service">
+        </div>
+        <div class="form-group">
+            <label for="request-clientSecret">Client Secret</label>
+            <input type="password" class="form-control" id="request-clientSecret" v-model="request.clientSecret" placeholder="The client secret of the app registered with the token service">
+        </div>
+        <h5>Request</h5>
+
+        <div class="mb-2">
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-openIdConnect">OpenID Connect</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-implicit">OAuth 2.0 Implicit Grant</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="request-requestType" id="request-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="request.requestType">
+                <label class="form-check-label" for="request-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
             </div>
         </div>
-        @if (Model.Response != null)
-        {
-        <div class="tab-pane fade show active" id="tabMainPageResponse" role="tabpanel" aria-labelledby="tabMainHeaderResponse">
-            @if (Model.Response.HasError)
-            {
-                <h4 class="mt-2">Error</h4>
-                <div class="alert alert-danger">
-                    <h4 class="alert-heading">@Model.Response.Error</h4>
-                    <div>@Model.Response.ErrorDescription</div>
-                </div>
-            }
-            @if (Model.Response.HasDeviceCode)
-            {
-                <h4 class="mt-2">Device Code</h4>
-                <div>To sign in, use a web browser to open the page <a href="@Model.Response.DeviceCodeVerificationUri" target="_blank">@Model.Response.DeviceCodeVerificationUri</a> and enter the code <code>@Model.Response.DeviceUserCode</code> to authenticate.</div>
-                <input type="hidden" name="@nameof(AuthRequest.DeviceCode)" value="@Model.Response.DeviceCode" />
-                <button type="submit" name="@nameof(AuthRequest.RequestType)" value="@Constants.RequestTypes.DeviceToken" class="btn btn-primary">Request Token</button>
-            }
-            @if (Model.Response.HasToken)
-            {
-                <h4 class="mt-2">Tokens</h4>
-                <div>Token Type: <code>@Model.Response.TokenType</code></div>
-                <div>Expires In: <code>@Model.Response.ExpiresIn</code></div>
-                @if (!string.IsNullOrWhiteSpace(Model.Response.IdToken))
-                {
-                    <div class="mt-3">ID Token (<a href="https://jwt.ms/#id_token=@Model.Response.IdToken" target="_blank">decode</a>): <code>@Model.Response.IdToken</code></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Response.AccessToken))
-                {
-                    <div class="mt-3">Access Token (<a href="https://jwt.ms/#access_token=@Model.Response.AccessToken" target="_blank">decode</a>): <code>@Model.Response.AccessToken</code></div>
-                }
-                @if (!string.IsNullOrWhiteSpace(Model.Response.RefreshToken))
-                {
-                    <div class="mt-3">Refresh Token: <code>@Model.Response.RefreshToken</code></div>
-                    <input type="hidden" name="@nameof(AuthRequest.RefreshToken)" value="@Model.Response.RefreshToken" />
-                    <button type="submit" name="@nameof(AuthRequest.RequestType)" value="@Constants.RequestTypes.RefreshToken" class="btn btn-primary">Refresh Token</button>
-                }
-            }
-            @if (!string.IsNullOrWhiteSpace(Model.Response.Raw))
-            {
-                <h4 class="mt-2">Raw Response</h4>
-                <pre><code>@Model.Response.Raw</code></pre>
-            }
+
+        <div class="form-group">
+            <label for="request-scope">Scope</label>
+            <input type="text" class="form-control" id="request-scope" v-model="request.scope" placeholder="The scope to request">
         </div>
-        }
+
+        <div v-if="request.requestType === '@Constants.RequestTypes.OpenIdConnect' || request.requestType === '@Constants.RequestTypes.Implicit' || request.requestType === '@Constants.RequestTypes.AuthorizationCode'">
+            <div class="form-group">
+                <label for="request-responseType">Response Type (<code>id_token</code>, <code>token</code>, <code>code</code>, ...)</label>
+                <input type="text" class="form-control" id="request-responseType" v-model="request.responseType" placeholder="The response type">
+            </div>
+            <div class="form-group">
+                <label for="request-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
+                <input type="text" class="form-control" id="request-responseMode" v-model="request.responseMode" placeholder="The response mode">
+            </div>
+        </div>
+
+        <div v-if="request.requestType === '@Constants.RequestTypes.RefreshToken'">
+            <div class="form-group">
+                <label for="request-deviceCode">Refresh Token</label>
+                <input type="text" class="form-control" id="request-refreshToken" v-model="request.refreshToken" placeholder="The refresh token">
+            </div>
+        </div>
+
+        <div v-if="request.requestType === '@Constants.RequestTypes.DeviceToken'">
+            <div class="form-group">
+                <label for="request-deviceCode">Device Code</label>
+                <input type="text" class="form-control" id="request-deviceCode" v-model="request.deviceCode" placeholder="The device code">
+            </div>
+        </div>
+
+        <div v-if="request.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
+            <div class="form-group">
+                <label for="request-userName">User Name</label>
+                <input type="text" class="form-control" id="request-userName" v-model="request.userName" placeholder="The user name of the resource owner">
+            </div>
+            <div class="form-group">
+                <label for="request-password">Password</label>
+                <input type="password" class="form-control" id="request-password" v-model="request.password" placeholder="The password of the resource owner">
+            </div>
+        </div>
+
+        <button v-on:click="submitRequest(request)" class="btn btn-primary mt-1" v-bind:disabled="processing">
+            Submit
+            <i v-if="processing" class="fas fa-spinner fa-spin"></i>
+        </button>
+
+        <div v-if="errorMessage" class="mt-2">
+            <div class="alert alert-danger">{{ errorMessage }}</div>
+        </div>
+
+        <div><pre>{{ request }}</pre></div>
     </div>
-</form>
+    <div id="response-panel" v-if="response" class="mt-3">
+        <h2>Response</h2>
+
+        <div v-if="response.error">
+            <h5 class="mt-2">Error</h5>
+            <div class="alert alert-danger">
+                <h4 class="alert-heading">{{ response.error }}</h4>
+                <div v-if="response.errorDescription">{{ response.errorDescription }}</div>
+            </div>
+        </div>
+
+        <div v-if="response.deviceCode">
+            <h5 class="mt-2">Device Code</h5>
+            <div>To sign in, use a web browser to open the page <a v-bind:href="response.deviceCodeVerificationUri" target="_blank">{{ response.deviceCodeVerificationUri }}</a> and enter the code <code>{{ response.deviceUserCode }}</code> to authenticate.</div>
+            <button v-on:click="prepareDeviceTokenRequest(response.deviceCode)" class="btn btn-primary">Prepare Device Token Request</button>
+        </div>
+
+        <div v-if="response.idToken">
+            <h5 class="mt-2">ID Token</h5>
+            <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.idToken" target="_blank">Decode</a></div>
+            <div class="mt-2"><code>{{ response.idToken }}</code></div>
+        </div>
+
+        <div v-if="response.accessToken">
+            <h5 class="mt-2">Access Token</h5>
+            <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
+            <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
+            <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.accessToken" target="_blank">Decode</a></div>
+            <div class="mt-2"><code>{{ response.accessToken }}</code></div>
+        </div>
+
+        <div v-if="response.refreshToken">
+            <h5 class="mt-2">Refresh Token</h5>
+            <div class="mt-2"><code>{{ response.refreshToken }}</code></div>
+            <button v-on:click="prepareRefreshTokenRequest(response.refreshToken)" class="btn btn-primary">Prepare Refresh Token Request</button>
+        </div>
+
+        <div v-if="response.raw">
+            <h5 class="mt-2">Raw Response</h5>
+            <pre><code>{{ response.raw }}</code></pre>
+        </div>
+    </div>
+</div>
