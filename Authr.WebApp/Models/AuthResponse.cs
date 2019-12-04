@@ -22,9 +22,7 @@ namespace Authr.WebApp.Models
         {
             return new AuthResponse
             {
-                Error = value.Message,
-                ErrorDescription = value.ToString(),
-                Raw = value.ToString()
+                Error = value.Message
             };
         }
 

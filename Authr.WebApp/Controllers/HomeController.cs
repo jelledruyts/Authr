@@ -171,6 +171,9 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleClientCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
             {
@@ -184,6 +187,10 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleRefreshTokenRequestAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
+            GuardNotEmpty(requestParameters.RefreshToken, "The refresh token must be specified.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestRefreshTokenAsync(new RefreshTokenRequest
             {
@@ -198,6 +205,8 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleDeviceCodeRequestAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.DeviceCodeEndpoint, "The device code endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceAuthorizationAsync(new DeviceAuthorizationRequest
             {
@@ -210,6 +219,9 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleDeviceTokenRequestAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.DeviceCode, "The device code must be specified.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceTokenAsync(new DeviceTokenRequest
             {
@@ -222,6 +234,11 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleResourceOwnerPasswordCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
+            GuardNotEmpty(requestParameters.UserName, "The user name must be specified.");
+            GuardNotEmpty(requestParameters.Password, "The password must be specified.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestPasswordTokenAsync(new PasswordTokenRequest
             {
@@ -237,6 +254,9 @@ namespace Authr.WebApp.Controllers
 
         private string GetAuthorizationEndpointRequestUrl(AuthRequest request)
         {
+            GuardNotEmpty(request.Parameters.AuthorizationEndpoint, "The authorization endpoint must be specified.");
+            GuardNotEmpty(request.Parameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified.");
             var urlBuilder = new RequestUrl(request.Parameters.AuthorizationEndpoint);
             return urlBuilder.CreateAuthorizeUrl(
                 clientId: request.Parameters.ClientId,
@@ -251,9 +271,13 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequestParameters requestParameters)
         {
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
+            GuardNotEmpty(requestParameters.AuthorizationCode, "The authorization code must be specified.");
             if (requestParameters.RequestType != Constants.RequestTypes.OpenIdConnect && requestParameters.RequestType != Constants.RequestTypes.AuthorizationCode)
             {
-                throw new Exception("Mismatching request type for Authorization Code grant");
+                throw new Exception("Invalid request type for Authorization Code grant: " + requestParameters.RequestType);
             }
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestAuthorizationCodeTokenAsync(new AuthorizationCodeTokenRequest
@@ -265,6 +289,14 @@ namespace Authr.WebApp.Controllers
                 RedirectUri = requestParameters.RedirectUri
             });
             return AuthResponse.FromTokenResponse(response);
+        }
+
+        private static void GuardNotEmpty(string value, string message)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new ArgumentException(message);
+            }
         }
 
         #endregion
