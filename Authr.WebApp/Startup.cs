@@ -61,7 +61,15 @@ namespace Authr.WebApp
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddRazorPages();
             services.AddHttpClient();
-            services.AddSingleton<IUserConfigurationProvider>(new AzureStorageUserConfigurationProvider(Configuration.GetValue<string>("App:UserConfiguration:ConnectionString")));
+            var userConfigurationConnectionString = Configuration.GetValue<string>("App:UserConfiguration:ConnectionString");
+            if (string.IsNullOrWhiteSpace(userConfigurationConnectionString))
+            {
+                services.AddSingleton<IUserConfigurationProvider>(new InMemoryUserConfigurationProvider());
+            }
+            else
+            {
+                services.AddSingleton<IUserConfigurationProvider>(new AzureStorageUserConfigurationProvider(userConfigurationConnectionString));
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
