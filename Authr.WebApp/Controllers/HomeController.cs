@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +13,11 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Keep full http traces.
     public class HomeController : Controller
     {
         // TODO: Use persistent store.
-        private static readonly IDictionary<string, AuthRequest> RequestCache = new Dictionary<string, AuthRequest>();
+        private static readonly IDictionary<string, AuthFlow> AuthFlowCache = new Dictionary<string, AuthFlow>();
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IUserConfigurationProvider userConfigurationProvider;
@@ -50,9 +52,9 @@ namespace Authr.WebApp.Controllers
         public async Task<IActionResult> IndexPost(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
             var model = await HandleAsync(requestParameters, responseParameters);
-            if (!string.IsNullOrWhiteSpace(model.RedirectUrl))
+            if (!string.IsNullOrWhiteSpace(model.RequestedRedirectUrl))
             {
-                return Redirect(model.RedirectUrl);
+                return Redirect(model.RequestedRedirectUrl);
             }
             else
             {
@@ -82,89 +84,125 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthViewModel> HandleAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            // TODO: Add validation and throw exceptions with meaningful messages.
-            // TODO: Cache complete "AuthFlow" with a single correlation id, and don't remove from cache until IsComplete = true.
             var model = new AuthViewModel();
             try
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())
                 {
-                    // We have a response to a previously initiated request.
-                    var originalRequest = default(AuthRequest);
+                    // We have a response to a previously initiated flow, retrieve the flow details from cache.
+                    var flow = default(AuthFlow);
+                    var shouldRemoveFlowFromCacheWhenComplete = false;
                     if (!string.IsNullOrWhiteSpace(responseParameters.State))
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
                         // TODO: Check that the request belongs to the current user if signed in.
-                        if (RequestCache.ContainsKey(responseParameters.State))
+                        if (AuthFlowCache.ContainsKey(responseParameters.State))
                         {
-                            originalRequest = RequestCache[responseParameters.State];
-                            model.RequestParameters = originalRequest.Parameters;
-                            RequestCache.Remove(responseParameters.State);
+                            // The flow id should be in the State parameter as passed in during the request original.
+                            var flowId = responseParameters.State;
+                            flow = AuthFlowCache[flowId];
+                            shouldRemoveFlowFromCacheWhenComplete = true;
                         }
                         else
                         {
-                            this.logger.LogWarning($"Original request not found for 'state' \"{responseParameters.State}\"");
+                            this.logger.LogWarning($"Flow with original request not found for 'state' \"{responseParameters.State}\"");
                         }
                     }
+                    if (flow == null)
+                    {
+                        // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
+                        flow = new AuthFlow();
+                        flow.AddExternallyInitiatedRequest();
+                    }
+                    model.Flow = flow;
+                    var originalRequest = flow.Requests.Last();
+                    model.RequestParameters = originalRequest.Parameters;
 
-                    model.Response = AuthResponse.FromAuthResponseParameters(responseParameters);
+                    var response = AuthResponse.FromAuthResponseParameters(responseParameters);
+                    originalRequest.Response = response;
 
                     // If there is an authorization code response, redeem it immediately for the access token.
-                    if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode) && originalRequest != null)
+                    if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode))
                     {
-                        // TODO: Also track this new auth code request in the auth flow.
-                        var authorizationCodeRequest = new AuthRequest(originalRequest.Parameters.Clone());
-                        authorizationCodeRequest.Parameters.AuthorizationCode = responseParameters.AuthorizationCode;
-                        model.RequestParameters = authorizationCodeRequest.Parameters;
-                        model.Response = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters);
+                        if (originalRequest.IsInitiatedExternally)
+                        {
+                            originalRequest.Response = AuthResponse.FromError("An authorization code was received but the request was initiated externally, cannot redeem it for an access token.", $"Authorization code: \"{responseParameters.AuthorizationCode}\".");
+                        }
+                        else
+                        {
+                            var authorizationCodeRequestParameters = originalRequest.Parameters.Clone();
+                            authorizationCodeRequestParameters.RequestType = Constants.RequestTypes.AuthorizationCode;
+                            authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
+                            var authorizationCodeRequest = flow.AddRequest(authorizationCodeRequestParameters);
+                            var authorizationCodeResponse = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters);
+                            authorizationCodeRequest.Response = authorizationCodeResponse;
+                        }
                     }
+                    flow.IsComplete = true;
+                    if (flow.IsComplete && shouldRemoveFlowFromCacheWhenComplete)
+                    {
+                        AuthFlowCache.Remove(responseParameters.State);
+                    }
+
+                    // Set the response to the last relevant response received.
+                    model.Response = flow.Requests.Last().Response;
                 }
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
                     // This is a new auth request, determine which flow to execute.
+                    var flow = new AuthFlow();
+                    model.Flow = flow;
                     model.RequestParameters = requestParameters;
-                    var request = new AuthRequest(requestParameters);
+                    var request = flow.AddRequest(requestParameters);
                     if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
-                        var authorizationEndpointRequestUrl = GetAuthorizationEndpointRequestUrl(request);
-                        RequestCache[request.State] = request;
-                        model.RedirectUrl = authorizationEndpointRequestUrl;
+                        request.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
+                        AuthFlowCache[flow.Id] = flow;
+                        model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
                     {
-                        model.Response = await HandleClientCredentialsRequestAsync(requestParameters);
+                        request.Response = await HandleClientCredentialsRequestAsync(requestParameters);
+                        flow.IsComplete = true;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
                     {
-                        model.Response = await HandleRefreshTokenRequestAsync(requestParameters);
+                        request.Response = await HandleRefreshTokenRequestAsync(requestParameters);
+                        flow.IsComplete = true;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
                     {
-                        model.Response = await HandleDeviceCodeRequestAsync(requestParameters);
+                        request.Response = await HandleDeviceCodeRequestAsync(requestParameters);
+                        flow.IsComplete = true;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
                     {
-                        model.Response = await HandleDeviceTokenRequestAsync(requestParameters);
+                        request.Response = await HandleDeviceTokenRequestAsync(requestParameters);
+                        flow.IsComplete = true;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
                     {
-                        model.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
+                        request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
+                        flow.IsComplete = true;
                     }
-                }
-                if (model.RequestParameters == null)
-                {
-                    // Create new request parameters and set sensible defaults if not provided.
-                    model.RequestParameters = requestParameters ?? new AuthRequestParameters();
-                    model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
-                    model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
-                    model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
-                    model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
-                    model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
+
+                    // Set the response to the last relevant response received.
+                    model.Response = flow.Requests.Last().Response;
                 }
             }
             catch (Exception exc)
             {
                 model.Response = AuthResponse.FromException(exc);
+            }
+            if (model.RequestParameters == null)
+            {
+                // Create new request parameters and set sensible defaults if not provided.
+                model.RequestParameters = requestParameters ?? new AuthRequestParameters();
+                model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
+                model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
+                model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
+                model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
+                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
             }
             return model;
         }

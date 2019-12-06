@@ -7,14 +7,9 @@ namespace Authr.WebApp.Models
         public AuthRequestParameters Parameters { get; set; }
         public string Nonce { get; set; }
         public string State { get; set; }
+        public string RequestedRedirectUrl { get; set; }
         public DateTimeOffset? TimeCreated { get; set; }
-
-        public AuthRequest(AuthRequestParameters parameters)
-        {
-            this.Parameters = parameters;
-            this.Nonce = Guid.NewGuid().ToString();
-            this.State = Guid.NewGuid().ToString();
-            this.TimeCreated = DateTimeOffset.UtcNow;
-        }
+        public bool IsInitiatedExternally { get; set; }
+        public AuthResponse Response { get; set; }
     }
 }

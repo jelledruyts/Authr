@@ -12,6 +12,7 @@ var app = new Vue({
         return {
             requestParameters: null,
             response: null,
+            flow: null,
             userConfiguration: null,
             processing: false,
             validationMessage: null,
@@ -89,6 +90,7 @@ var app = new Vue({
         },
         submit: function(path, value) {
             this.response = null;
+            this.flow = null;
             this.processing = true;
             this.errorMessage = null;
             axios.post('/api/' + path, value)
@@ -97,8 +99,9 @@ var app = new Vue({
                     // for a previous request that was now responded to through a URL #fragment (e.g. implicit flow).
                     this.requestParameters = response.data.requestParameters;
                     this.response = response.data.response;
-                    if (response.data.redirectUrl) {
-                        window.location.replace(response.data.redirectUrl);
+                    this.flow = response.data.flow;
+                    if (response.data.requestedRedirectUrl) {
+                        window.location.replace(response.data.requestedRedirectUrl);
                     }
                 })
                 .catch(error => {
@@ -114,6 +117,7 @@ var app = new Vue({
     created: function () {
         this.requestParameters = @Html.Raw(Json.Serialize(Model.RequestParameters));
         this.response = @Html.Raw(Json.Serialize(Model.Response));
+        this.flow = @Html.Raw(Json.Serialize(Model.Flow));
         this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
         if (location.hash && location.hash.length > 1) {
             // If there are parameters in the #fragment of the URL, this is likely an external auth response;
@@ -169,6 +173,10 @@ var app = new Vue({
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType">
                 <label class="form-check-label" for="requestParameters-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-refreshToken" value="@Constants.RequestTypes.RefreshToken" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-refreshToken">OAuth 2.0 Refresh Token Grant</label>
             </div>
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">

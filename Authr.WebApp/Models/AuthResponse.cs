@@ -26,6 +26,15 @@ namespace Authr.WebApp.Models
             };
         }
 
+        public static AuthResponse FromError(string error, string errorDescription)
+        {
+            return new AuthResponse
+            {
+                Error = error,
+                ErrorDescription = errorDescription
+            };
+        }
+
         public static AuthResponse FromAuthResponseParameters(AuthResponseParameters value)
         {
             return new AuthResponse
