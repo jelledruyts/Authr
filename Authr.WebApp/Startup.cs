@@ -70,6 +70,15 @@ namespace Authr.WebApp
             {
                 services.AddSingleton<IUserConfigurationProvider>(new AzureStorageUserConfigurationProvider(userConfigurationConnectionString));
             }
+            var authFlowCacheConnectionString = Configuration.GetValue<string>("App:AuthFlowCache:ConnectionString");
+            if (string.IsNullOrWhiteSpace(authFlowCacheConnectionString))
+            {
+                services.AddSingleton<IAuthFlowCacheProvider>(new InMemoryAuthFlowCacheProvider());
+            }
+            else
+            {
+                services.AddSingleton<IAuthFlowCacheProvider>(new AzureStorageAuthFlowCacheProvider(authFlowCacheConnectionString));
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
@@ -16,17 +15,17 @@ namespace Authr.WebApp.Controllers
     // TODO: Keep full http traces.
     public class HomeController : Controller
     {
-        // TODO: Use persistent store.
-        private static readonly IDictionary<string, AuthFlow> AuthFlowCache = new Dictionary<string, AuthFlow>();
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IUserConfigurationProvider userConfigurationProvider;
+        private readonly IAuthFlowCacheProvider authFlowCacheProvider;
 
-        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider)
         {
             this.logger = logger;
             this.httpClientFactory = httpClientFactory;
             this.userConfigurationProvider = userConfigurationProvider;
+            this.authFlowCacheProvider = authFlowCacheProvider;
         }
 
         [Route(nameof(Error))]
@@ -96,11 +95,11 @@ namespace Authr.WebApp.Controllers
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
                         // TODO: Check that the request belongs to the current user if signed in.
-                        if (AuthFlowCache.ContainsKey(responseParameters.State))
+                        // The flow id should be in the State parameter as passed in during the request original.
+                        var flowId = responseParameters.State;
+                        flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
+                        if (flow != null)
                         {
-                            // The flow id should be in the State parameter as passed in during the request original.
-                            var flowId = responseParameters.State;
-                            flow = AuthFlowCache[flowId];
                             shouldRemoveFlowFromCacheWhenComplete = true;
                         }
                         else
@@ -141,7 +140,7 @@ namespace Authr.WebApp.Controllers
                     flow.IsComplete = true;
                     if (flow.IsComplete && shouldRemoveFlowFromCacheWhenComplete)
                     {
-                        AuthFlowCache.Remove(responseParameters.State);
+                        await this.authFlowCacheProvider.RemoveAuthFlowAsync(responseParameters.State);
                     }
 
                     // Set the response to the last relevant response received.
@@ -157,7 +156,7 @@ namespace Authr.WebApp.Controllers
                     if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
                         request.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
-                        AuthFlowCache[flow.Id] = flow;
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow);
                         model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)

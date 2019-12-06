@@ -22,7 +22,7 @@ namespace Authr.WebApp.Services
         public async Task<UserConfiguration> GetUserConfigurationAsync(string userId)
         {
             // Get the blob container for the user but don't create it if it doesn't yet exist.
-            var containerClient = this.client.GetBlobContainerClient(userId);
+            var containerClient = this.client.GetBlobContainerClient(GetBlobContainerName(userId));
             var blob = containerClient.GetBlobClient(UserConfigurationFileName);
             try
             {
@@ -53,7 +53,7 @@ namespace Authr.WebApp.Services
         public async Task SaveUserConfigurationAsync(UserConfiguration userConfiguration)
         {
             // Get the blob container for the user and create it if it doesn't yet exist.
-            var containerClient = this.client.GetBlobContainerClient(userConfiguration.UserId);
+            var containerClient = this.client.GetBlobContainerClient(GetBlobContainerName(userConfiguration.UserId));
             await containerClient.CreateIfNotExistsAsync();
             var blob = containerClient.GetBlobClient(UserConfigurationFileName);
 
@@ -66,6 +66,11 @@ namespace Authr.WebApp.Services
                 stream.Position = 0;
                 await blob.UploadAsync(stream, overwrite: true);
             }
+        }
+
+        private static string GetBlobContainerName(string userId)
+        {
+            return $"user-{userId}";
         }
     }
 }
