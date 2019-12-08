@@ -12,13 +12,29 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Decode tokens and display in app.
+    // TODO: Allow any extra parameters to be specified on redirect.
     // TODO: Keep full http traces.
+    // TODO: Add terms of service and privacy statements.
+    // TODO: Support SAML 2.0.
+    // TODO: Support WS-Federation.
+    // TODO: Richer client-side validation (https://vuejs.org/v2/cookbook/form-validation.html).
+    // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
+    // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
+    // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
+    // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
     public class HomeController : Controller
     {
+        #region Fields
+
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IUserConfigurationProvider userConfigurationProvider;
         private readonly IAuthFlowCacheProvider authFlowCacheProvider;
+
+        #endregion
+
+        #region Constructors
 
         public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider)
         {
@@ -28,6 +44,10 @@ namespace Authr.WebApp.Controllers
             this.authFlowCacheProvider = authFlowCacheProvider;
         }
 
+        #endregion
+
+        #region Action Methods
+
         [Route(nameof(Error))]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
@@ -36,27 +56,53 @@ namespace Authr.WebApp.Controllers
         }
 
         [Route("")]
-        public async Task<IActionResult> Index(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
+        public Task<IActionResult> Index(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = await HandleAsync(requestParameters, responseParameters);
-            if (this.User.Identity.IsAuthenticated)
-            {
-                model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
-            }
-            return View(model);
+            // Whenever a GET comes in, bind the possibly matching parameters to a request or response (done automatically
+            // by model binding) and attempt to handle either.
+            return HandlePageRequestAsync(requestParameters, responseParameters);
         }
 
         [Route("")]
         [HttpPost]
-        public async Task<IActionResult> IndexPost(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
+        public Task<IActionResult> IndexPost(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = await HandleAsync(requestParameters, responseParameters);
+            // Whenever a POST comes in, bind the possibly matching parameters to a request or response (done automatically
+            // by model binding) and attempt to handle either.
+            return HandlePageRequestAsync(requestParameters, responseParameters);
+        }
+
+        [Route("api/request")]
+        [HttpPost]
+        public Task<AuthViewModel> SubmitRequest([FromBody]ApiClientRequest request)
+        {
+            // This is an API call, do not return a page or redirect the browser but return the data only.
+            return HandleApiRequestAsync(request, null);
+        }
+
+        [Route("api/response")]
+        [HttpPost]
+        public Task<AuthViewModel> SubmitResponse([FromBody]AuthResponseParameters responseParameters)
+        {
+            // This is an API call, do not return a page or redirect the browser but return the data only.
+            return HandleApiRequestAsync(null, responseParameters);
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private async Task<IActionResult> HandlePageRequestAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
+        {
+            var model = await HandleCoreAsync(requestParameters, responseParameters);
             if (!string.IsNullOrWhiteSpace(model.RequestedRedirectUrl))
             {
+                // The result of a request was to redirect the browser, send a redirect response.
                 return Redirect(model.RequestedRedirectUrl);
             }
             else
             {
+                // Render the regular page, optionally with user configuration if the user was signed in.
                 if (this.User.Identity.IsAuthenticated)
                 {
                     model.UserConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(this.User.GetUserId());
@@ -65,23 +111,125 @@ namespace Authr.WebApp.Controllers
             }
         }
 
-        [Route("api/request")]
-        [HttpPost]
-        public Task<AuthViewModel> SubmitRequest([FromBody]AuthRequestParameters requestParameters)
+        private async Task<AuthViewModel> HandleApiRequestAsync(ApiClientRequest request, AuthResponseParameters responseParameters)
         {
-            return HandleAsync(requestParameters, null);
+            var userConfiguration = default(UserConfiguration);
+            if (request != null && request.Options != null)
+            {
+                if (request.Options.SaveIdentityService || request.Options.SaveClientApplication || request.Options.SaveRequestTemplate)
+                {
+                    if (!this.User.Identity.IsAuthenticated)
+                    {
+                        this.logger.LogWarning("A request was made to save certain request options but the user is not authenticated.");
+                    }
+                    else
+                    {
+                        // Retrieve user configuration.
+                        var userId = this.User.GetUserId();
+                        userConfiguration = await this.userConfigurationProvider.GetUserConfigurationAsync(userId);
+
+                        // Save the identity service.
+                        if (request.Options.SaveIdentityService && !string.IsNullOrWhiteSpace(request.Options.SaveIdentityServiceAsName))
+                        {
+                            // Add or update the identity service in user configuration.
+                            var identityService = MergeIdentityService(userConfiguration, request.Options.SaveIdentityServiceAsName, request.RequestParameters);
+
+                            // Update the request parameters to refer to the identity service.
+                            request.RequestParameters.IdentityServiceId = identityService.Id;
+                        }
+
+                        // Save the client app.
+                        if (request.Options.SaveClientApplication && !string.IsNullOrWhiteSpace(request.Options.SaveClientApplicationAsName))
+                        {
+                            var identityService = userConfiguration.IdentityServices.SingleOrDefault(i => string.Equals(i.Id, request.RequestParameters.IdentityServiceId, StringComparison.InvariantCultureIgnoreCase));
+                            if (identityService == null)
+                            {
+                                this.logger.LogWarning("A request was made to save the client app but the related identity service was not defined.");
+                            }
+                            else
+                            {
+                                // Add or update the client app in user configuration.
+                                var clientApp = MergeClientApplication(userConfiguration, identityService, request.Options.SaveClientApplicationAsName, request.RequestParameters);
+
+                                // Update the request parameters to refer to the client app.
+                                request.RequestParameters.ClientApplicationId = clientApp.Id;
+                            }
+                        }
+
+                        // Save the request template.
+                        if (request.Options.SaveRequestTemplate && !string.IsNullOrWhiteSpace(request.Options.SaveRequestTemplateAsName))
+                        {
+                            // Add or update the client app in user configuration.
+                            var requestTemplate = MergeRequestTemplate(userConfiguration, request.Options.SaveRequestTemplateAsName, request.RequestParameters);
+
+                            // Update the request parameters to refer to the client app.
+                            request.RequestParameters.RequestTemplateId = requestTemplate.Id;
+                        }
+
+                        await this.userConfigurationProvider.SaveUserConfigurationAsync(userConfiguration);
+                    }
+                }
+            }
+            var model = await HandleCoreAsync(request?.RequestParameters, responseParameters);
+            if (userConfiguration != null)
+            {
+                model.UserConfiguration = userConfiguration;
+            }
+            return model;
         }
 
-        [Route("api/response")]
-        [HttpPost]
-        public Task<AuthViewModel> SubmitResponse([FromBody]AuthResponseParameters responseParameters)
+        private IdentityService MergeIdentityService(UserConfiguration userConfiguration, string identityServiceName, AuthRequestParameters requestParameters)
         {
-            return HandleAsync(null, responseParameters);
+            var identityService = userConfiguration.IdentityServices.SingleOrDefault(i => string.Equals(i.Name, identityServiceName, StringComparison.InvariantCultureIgnoreCase));
+            if (identityService != null)
+            {
+                this.logger.LogInformation($"Updating identity service \"{identityServiceName}\" for user \"{userConfiguration.UserId}\".");
+                identityService.Update(requestParameters);
+            }
+            else
+            {
+                this.logger.LogInformation($"Adding identity service \"{identityServiceName}\" for user \"{userConfiguration.UserId}\".");
+                identityService = IdentityService.FromRequestParameters(identityServiceName, requestParameters);
+                userConfiguration.IdentityServices.Add(identityService);
+            }
+            return identityService;
         }
 
-        #region Helper Methods
+        private ClientApplication MergeClientApplication(UserConfiguration userConfiguration, IdentityService identityService, string clientApplicationName, AuthRequestParameters requestParameters)
+        {
+            var clientApplication = identityService.ClientApplications.SingleOrDefault(a => string.Equals(a.Name, clientApplicationName, StringComparison.InvariantCultureIgnoreCase));
+            if (clientApplication != null)
+            {
+                this.logger.LogInformation($"Updating client application \"{clientApplicationName}\" for user \"{userConfiguration.UserId}\".");
+                clientApplication.Update(requestParameters);
+            }
+            else
+            {
+                this.logger.LogInformation($"Adding client application \"{clientApplicationName}\" for user \"{userConfiguration.UserId}\".");
+                clientApplication = ClientApplication.FromRequestParameters(clientApplicationName, requestParameters);
+                identityService.ClientApplications.Add(clientApplication);
+            }
+            return clientApplication;
+        }
 
-        private async Task<AuthViewModel> HandleAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
+        private AuthRequestTemplate MergeRequestTemplate(UserConfiguration userConfiguration, string requestTemplateName, AuthRequestParameters requestParameters)
+        {
+            var requestTemplate = userConfiguration.RequestTemplates.SingleOrDefault(r => string.Equals(r.Name, requestTemplateName, StringComparison.InvariantCultureIgnoreCase));
+            if (requestTemplate != null)
+            {
+                this.logger.LogInformation($"Updating request template \"{requestTemplateName}\" for user \"{userConfiguration.UserId}\".");
+                requestTemplate.Update(requestParameters);
+            }
+            else
+            {
+                this.logger.LogInformation($"Adding request template \"{requestTemplateName}\" for user \"{userConfiguration.UserId}\".");
+                requestTemplate = AuthRequestTemplate.FromRequestParameters(requestTemplateName, requestParameters);
+                userConfiguration.RequestTemplates.Add(requestTemplate);
+            }
+            return requestTemplate;
+        }
+
+        private async Task<AuthViewModel> HandleCoreAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
             var model = new AuthViewModel();
             try
@@ -208,9 +356,9 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleClientCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Client Credentials Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Client Credentials Grant.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 Client Credentials Grant.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestClientCredentialsTokenAsync(new ClientCredentialsTokenRequest
             {
@@ -224,10 +372,10 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleRefreshTokenRequestAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
-            GuardNotEmpty(requestParameters.RefreshToken, "The refresh token must be specified.");
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Refresh Token Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Refresh Token Grant.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 Refresh Token Grant.");
+            GuardNotEmpty(requestParameters.RefreshToken, "The refresh token must be specified for an OAuth 2.0 Refresh Token Grant.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestRefreshTokenAsync(new RefreshTokenRequest
             {
@@ -242,8 +390,8 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleDeviceCodeRequestAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.DeviceCodeEndpoint, "The device code endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
+            GuardNotEmpty(requestParameters.DeviceCodeEndpoint, "The device code endpoint must be specified for an OAuth 2.0 Device Authorization Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Device Authorization Grant.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceAuthorizationAsync(new DeviceAuthorizationRequest
             {
@@ -256,9 +404,9 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleDeviceTokenRequestAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(requestParameters.DeviceCode, "The device code must be specified.");
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Device Authorization Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Device Authorization Grant.");
+            GuardNotEmpty(requestParameters.DeviceCode, "The device code must be specified for an OAuth 2.0 Device Authorization Grant.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestDeviceTokenAsync(new DeviceTokenRequest
             {
@@ -271,11 +419,11 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleResourceOwnerPasswordCredentialsRequestAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
-            GuardNotEmpty(requestParameters.UserName, "The user name must be specified.");
-            GuardNotEmpty(requestParameters.Password, "The password must be specified.");
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Resource Owner Password Credentials Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Resource Owner Password Credentials Grant.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 Resource Owner Password Credentials Grant.");
+            GuardNotEmpty(requestParameters.UserName, "The user name must be specified for an OAuth 2.0 Resource Owner Password Credentials Grant.");
+            GuardNotEmpty(requestParameters.Password, "The password must be specified for an OAuth 2.0 Resource Owner Password Credentials Grant.");
             var client = this.httpClientFactory.CreateClient();
             var response = await client.RequestPasswordTokenAsync(new PasswordTokenRequest
             {
@@ -291,9 +439,9 @@ namespace Authr.WebApp.Controllers
 
         private string GetAuthorizationEndpointRequestUrl(AuthRequest request)
         {
-            GuardNotEmpty(request.Parameters.AuthorizationEndpoint, "The authorization endpoint must be specified.");
-            GuardNotEmpty(request.Parameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified.");
+            GuardNotEmpty(request.Parameters.AuthorizationEndpoint, "The authorization endpoint must be specified for an authorization endpoint request.");
+            GuardNotEmpty(request.Parameters.ClientId, "The client id must be specified for an authorization endpoint request.");
+            GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for an authorization endpoint request.");
             var urlBuilder = new RequestUrl(request.Parameters.AuthorizationEndpoint);
             return urlBuilder.CreateAuthorizeUrl(
                 clientId: request.Parameters.ClientId,
@@ -308,10 +456,10 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequestParameters requestParameters)
         {
-            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified.");
-            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified.");
-            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified.");
-            GuardNotEmpty(requestParameters.AuthorizationCode, "The authorization code must be specified.");
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Authorization Code Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Authorization Code Grant.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 Authorization Code Grant.");
+            GuardNotEmpty(requestParameters.AuthorizationCode, "The authorization code must be specified for an OAuth 2.0 Authorization Code Grant.");
             if (requestParameters.RequestType != Constants.RequestTypes.OpenIdConnect && requestParameters.RequestType != Constants.RequestTypes.AuthorizationCode)
             {
                 throw new Exception("Invalid request type for Authorization Code grant: " + requestParameters.RequestType);

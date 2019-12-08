@@ -83,3 +83,10 @@ body {
 .nav-tabs {
   margin-bottom: 0;
 }
+
+/* Vue
+-------------------------------------------------- */
+
+[v-cloak] {
+  display: none;
+}

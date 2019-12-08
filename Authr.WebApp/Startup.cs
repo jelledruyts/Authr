@@ -40,6 +40,9 @@ namespace Authr.WebApp
                 // Don't remove any incoming claims.
                 options.ClaimActions.Clear();
 
+                // Decouple authentication cookie lifetime from token lifetime.
+                options.UseTokenLifetime = false;
+
                 var onTokenValidated = options.Events.OnTokenValidated;
                 options.Events.OnTokenValidated = context =>
                 {

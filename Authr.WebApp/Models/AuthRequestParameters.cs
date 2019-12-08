@@ -3,6 +3,10 @@ namespace Authr.WebApp.Models
     public class AuthRequestParameters
     {
         public string RequestType { get; set; }
+        public string RequestTemplateId { get; set; }
+        public string IdentityServiceId { get; set; }
+        public string ClientApplicationId { get; set; }
+        public string MetadataEndpoint { get; set; }
         public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
