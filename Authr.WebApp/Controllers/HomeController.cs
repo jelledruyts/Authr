@@ -23,6 +23,7 @@ namespace Authr.WebApp.Controllers
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
+    // TODO: Migrate to .NET Core 3.1 when App Service supports it.
     public class HomeController : Controller
     {
         #region Fields
