@@ -22,11 +22,15 @@ var app = new Vue({
                 saveRequestTemplate: false,
                 saveRequestTemplateAsName: null
             },
-            userSignedIn: false,
             selectedIdentityService: null,
             processing: false,
             validationMessage: null,
             errorMessage: null
+        }
+    },
+    computed: {
+        userSignedIn: function () {
+            return this.userConfiguration !== null;
         }
     },
     watch: {
@@ -46,10 +50,6 @@ var app = new Vue({
         },
         'requestParameters.responseType': function(newValue, oldValue) {
             this.validateParameters();
-        },
-        'userConfiguration': function(newValue, oldValue) {
-            // TODO: Replace by computed property.
-            this.userSignedIn = newValue !== null;
         },
         'requestParameters.requestTemplateId': function(newValue, oldValue) {
             if (this.userConfiguration) {
