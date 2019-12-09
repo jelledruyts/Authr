@@ -1,0 +1,29 @@
+name: Build and Deploy Authr
+
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: '3.1.100'
+    - name: Build with dotnet
+      run: dotnet build "Authr.WebApp\Authr.WebApp.csproj" --configuration Release
+    - name: dotnet publish
+      run: |
+        dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
+    - name: Azure WebApp
+      uses: Azure/webapps-deploy@v1
+      with: 
+        app-name: authr-app-euw # Replace with your app name
+        publish-profile: ${{ secrets.AuthrAppEuwWebAppPublishProfile }} # Define secret variable in repository settings as per action documentation
+        package: ${{ env.DOTNET_ROOT }}/Authr.Website
