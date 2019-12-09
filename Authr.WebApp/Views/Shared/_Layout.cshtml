@@ -9,6 +9,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" />
     <link rel="stylesheet" href="~/css/site.css" />
     @Html.Raw(JavaScriptSnippet.FullScript)
+    @if (this.User.Identity.IsAuthenticated)
+    {
+    <script>
+        if (typeof(appInsights) != "undefined") { appInsights.setAuthenticatedUserContext("@User.GetUserId()"); }
+    </script>
+    }
 </head>
 <body>
     <header>

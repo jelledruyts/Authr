@@ -12,7 +12,6 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Session cookie is lost when deploying to Azure (cookie protection keys are recycled?)
     // TODO: Decode tokens and display in app.
     // TODO: Allow any extra parameters to be specified on redirect.
     // TODO: Show and edit (under "Advanced"?) the reply URL.
