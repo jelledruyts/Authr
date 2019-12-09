@@ -52,31 +52,35 @@ var app = new Vue({
             this.userSignedIn = newValue !== null;
         },
         'requestParameters.requestTemplateId': function(newValue, oldValue) {
-            var requestTemplate = this.findById(this.userConfiguration.requestTemplates, newValue);
-            if (requestTemplate !== null) {
-                // Set the request parameters to a clone of the template's request parameters.
-                this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
+            if (this.userConfiguration) {
+                var requestTemplate = this.findById(this.userConfiguration.requestTemplates, newValue);
+                if (requestTemplate !== null) {
+                    // Set the request parameters to a clone of the template's request parameters.
+                    this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
+                }
             }
         },
         'requestParameters.identityServiceId': function(newValue, oldValue) {
-            var identityService = this.findById(this.userConfiguration.identityServices, newValue);
-            if (identityService !== null) {
-                this.requestParameters.metadataEndpoint = identityService.metadataEndpoint;
-                this.requestParameters.authorizationEndpoint = identityService.authorizationEndpoint;
-                this.requestParameters.tokenEndpoint = identityService.tokenEndpoint;
-                this.requestParameters.deviceCodeEndpoint = identityService.deviceCodeEndpoint;
+            if (this.userConfiguration) {
+                var identityService = this.findById(this.userConfiguration.identityServices, newValue);
+                if (identityService !== null) {
+                    this.requestParameters.metadataEndpoint = identityService.metadataEndpoint;
+                    this.requestParameters.authorizationEndpoint = identityService.authorizationEndpoint;
+                    this.requestParameters.tokenEndpoint = identityService.tokenEndpoint;
+                    this.requestParameters.deviceCodeEndpoint = identityService.deviceCodeEndpoint;
 
-                // Check if the current client application is part of the current identity service.
-                var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
-                if (clientApplication === null || clientApplication.id !== this.requestParameters.clientApplicationId) {
-                    // If not, ensure no client application is set.
+                    // Check if the current client application is part of the current identity service.
+                    var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
+                    if (clientApplication === null || clientApplication.id !== this.requestParameters.clientApplicationId) {
+                        // If not, ensure no client application is set.
+                        this.requestParameters.clientApplicationId = null;
+                    }
+                } else {
+                    // There is no identity service, also ensure no client application is set.
                     this.requestParameters.clientApplicationId = null;
                 }
-            } else {
-                // There is no identity service, also ensure no client application is set.
-                this.requestParameters.clientApplicationId = null;
+                this.selectedIdentityService = identityService;
             }
-            this.selectedIdentityService = identityService;
         },
         'requestParameters.clientApplicationId': function(newValue, oldValue) {
             if (this.selectedIdentityService !== null) {

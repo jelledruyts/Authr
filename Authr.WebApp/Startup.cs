@@ -3,6 +3,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Authr.WebApp.Services;
+using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.AzureADB2C.UI;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -28,6 +30,10 @@ namespace Authr.WebApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Set up Application Insights.
+            services.AddSingleton<ITelemetryInitializer>(new CloudRoleTelemetryInitializer("Authr Website"));
+            services.AddApplicationInsightsTelemetry();
+
             IdentityModelEventSource.ShowPII = true;
             // Don't map any standard OpenID Connect claims to Microsoft-specific claims.
             // See https://leastprivilege.com/2017/11/15/missing-claims-in-the-asp-net-core-2-openid-connect-handler/.
@@ -97,6 +103,10 @@ namespace Authr.WebApp
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
             }
+
+            // Suppress App Insights telemetry from the debug output (see https://github.com/Microsoft/ApplicationInsights-dotnet/issues/310).
+            Microsoft.ApplicationInsights.Extensibility.Implementation.TelemetryDebugWriter.IsTracingDisabled = true;
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
@@ -111,6 +121,21 @@ namespace Authr.WebApp
                 // Razor pages are required by the B2C middleware, e.g. the "AzureADB2C/Account/Error" route.
                 endpoints.MapRazorPages();
             });
+        }
+
+        private class CloudRoleTelemetryInitializer : ITelemetryInitializer
+        {
+            private readonly string cloudRoleName;
+
+            public CloudRoleTelemetryInitializer(string cloudRoleName)
+            {
+                this.cloudRoleName = cloudRoleName;
+            }
+
+            public void Initialize(ITelemetry telemetry)
+            {
+                telemetry.Context.Cloud.RoleName = this.cloudRoleName;
+            }
         }
     }
 }
