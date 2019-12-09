@@ -4,7 +4,8 @@
 toastr.options = {
     'showMethod': 'show',
     'hideMethod': 'hide'
-}
+};
+new ClipboardJS('.btn-copy');
 
 var app = new Vue({
     el: '#app',
@@ -412,7 +413,7 @@ var app = new Vue({
             <div class="tab-pane fade" id="mainTabPageResponse" role="tabpanel" aria-labelledby="mainTabHeaderResponse" v-if="response">
 
                 <div v-if="response.error">
-                    <h5 class="mt-2">Error</h5>
+                    <h5 class="mt-3">Error</h5>
                     <div class="alert alert-danger">
                         <h4 class="alert-heading">{{ response.error }}</h4>
                         <div v-if="response.errorDescription">{{ response.errorDescription }}</div>
@@ -420,33 +421,48 @@ var app = new Vue({
                 </div>
 
                 <div v-if="response.deviceCode">
-                    <h5 class="mt-2">Device Code</h5>
+                    <h5 class="mt-3">Device Code</h5>
                     <div>To sign in, use a web browser to open the page <a v-bind:href="response.deviceCodeVerificationUri" target="_blank">{{ response.deviceCodeVerificationUri }}</a> and enter the code <code>{{ response.deviceUserCode }}</code> to authenticate.</div>
                     <button v-on:click="prepareDeviceTokenRequestParameters(response.deviceCode)" class="btn btn-primary mt-2" type="button">Prepare Device Token Request</button>
                 </div>
 
                 <div v-if="response.idToken">
-                    <h5 class="mt-2">ID Token</h5>
+                    <h5 class="mt-3">ID Token</h5>
                     <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.idToken" target="_blank">Decode</a></div>
-                    <div class="mt-2"><code>{{ response.idToken }}</code></div>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" id="response-idToken" v-model="response.idToken" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="response.accessToken">
-                    <h5 class="mt-2">Access Token</h5>
+                    <h5 class="mt-3">Access Token</h5>
                     <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
                     <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
                     <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.accessToken" target="_blank">Decode</a></div>
-                    <div class="mt-2"><code>{{ response.accessToken }}</code></div>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" id="response-accessToken" v-model="response.accessToken" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="response.refreshToken">
-                    <h5 class="mt-2">Refresh Token</h5>
-                    <div class="mt-2"><code>{{ response.refreshToken }}</code></div>
+                    <h5 class="mt-3">Refresh Token</h5>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control" id="response-refreshToken" v-model="response.refreshToken" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
                     <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
                 </div>
 
                 <div v-if="response.raw">
-                    <h5 class="mt-2">Raw Response</h5>
+                    <h5 class="mt-3">Raw Response</h5>
                     <pre><code>{{ response.raw }}</code></pre>
                 </div>
 
