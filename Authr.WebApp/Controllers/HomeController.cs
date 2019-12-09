@@ -14,6 +14,7 @@ namespace Authr.WebApp.Controllers
 {
     // TODO: Decode tokens and display in app.
     // TODO: Allow any extra parameters to be specified on redirect.
+    // TODO: Show and edit (under "Advanced"?) the reply URL.
     // TODO: Keep full http traces.
     // TODO: Add terms of service and privacy statements.
     // TODO: Support SAML 2.0.

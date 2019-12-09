@@ -108,6 +108,8 @@ namespace Authr.WebApp
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                // Razor pages are required by the B2C middleware, e.g. the "AzureADB2C/Account/Error" route.
+                endpoints.MapRazorPages();
             });
         }
     }
