@@ -10,7 +10,10 @@ using Microsoft.AspNetCore.Authentication.AzureADB2C.UI;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,6 +36,19 @@ namespace Authr.WebApp
             // Set up Application Insights.
             services.AddSingleton<ITelemetryInitializer>(new CloudRoleTelemetryInitializer("Authr Website"));
             services.AddApplicationInsightsTelemetry();
+
+            // Configure external Data Protection so that cookies and other secrets can be decoded
+            // from different hosting environments (e.g. Web App Slots).
+            var dataProtectionConnectionString = Configuration.GetValue<string>("App:DataProtection:ConnectionString");
+            var storageAccount = default(CloudStorageAccount);
+            if (CloudStorageAccount.TryParse(dataProtectionConnectionString, out storageAccount))
+            {
+                var blobClient = storageAccount.CreateCloudBlobClient();
+                var container = blobClient.GetContainerReference("dataprotection-keys");
+                container.CreateIfNotExistsAsync().Wait();
+                var blob = container.GetBlockBlobReference("authr-web/keys.xml");
+                services.AddDataProtection().PersistKeysToAzureBlobStorage(blob);
+            }
 
             IdentityModelEventSource.ShowPII = true;
             // Don't map any standard OpenID Connect claims to Microsoft-specific claims.
