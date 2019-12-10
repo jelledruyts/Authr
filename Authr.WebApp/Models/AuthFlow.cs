@@ -6,6 +6,7 @@ namespace Authr.WebApp.Models
     public class AuthFlow
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string UserId { get; set; }
         public DateTimeOffset? TimeCreated { get; set; } = DateTimeOffset.UtcNow;
         public bool IsComplete { get; set; }
         public IList<AuthRequest> Requests { get; set; } = new List<AuthRequest>();

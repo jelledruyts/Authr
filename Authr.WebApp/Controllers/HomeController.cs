@@ -13,10 +13,10 @@ using IdentityModel.Client;
 namespace Authr.WebApp.Controllers
 {
     // TODO: Decode tokens and display in app.
-    // TODO: Allow any extra parameters to be specified on redirect.
     // TODO: Show and edit (under "Advanced"?) the reply URL.
     // TODO: Keep full http traces.
     // TODO: Add terms of service and privacy statements.
+    // TODO: Show complete flow on separate tab page (raw JSON?).
     // TODO: Support SAML 2.0.
     // TODO: Support WS-Federation.
     // TODO: Richer client-side validation (https://vuejs.org/v2/cookbook/form-validation.html).
@@ -24,6 +24,7 @@ namespace Authr.WebApp.Controllers
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
+    // TODO: Save concrete flow to history.
     // TODO: Migrate to .NET Core 3.1 when App Service supports it.
     public class HomeController : Controller
     {
@@ -92,7 +93,7 @@ namespace Authr.WebApp.Controllers
 
         #endregion
 
-        #region Helper Methods
+        #region Page & API Request Handling
 
         private async Task<IActionResult> HandlePageRequestAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
@@ -231,6 +232,10 @@ namespace Authr.WebApp.Controllers
             return requestTemplate;
         }
 
+        #endregion
+
+        #region Core Auth Handling
+
         private async Task<AuthViewModel> HandleCoreAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
             var model = new AuthViewModel();
@@ -244,7 +249,6 @@ namespace Authr.WebApp.Controllers
                     if (!string.IsNullOrWhiteSpace(responseParameters.State))
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
-                        // TODO: Check that the request belongs to the current user if signed in.
                         // The flow id should be in the State parameter as passed in during the request original.
                         var flowId = responseParameters.State;
                         flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
@@ -254,15 +258,23 @@ namespace Authr.WebApp.Controllers
                         }
                         else
                         {
-                            this.logger.LogWarning($"Flow with original request not found for 'state' \"{responseParameters.State}\"");
+                            this.logger.LogWarning($"Flow with original request not found for state \"{responseParameters.State}\".");
                         }
                     }
                     if (flow == null)
                     {
                         // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
-                        flow = new AuthFlow();
+                        flow = new AuthFlow { UserId = this.User.GetUserId() };
                         flow.AddExternallyInitiatedRequest();
                     }
+
+                    // Check that the request belongs to the current user if signed in.
+                    if (!string.IsNullOrWhiteSpace(flow.UserId) && flow.UserId != this.User.GetUserId())
+                    {
+                        this.logger.LogWarning($"Flow \"{flow.Id}\" was requested by user \"{flow.UserId}\" but a response is now being processed by user \"{this.User.GetUserId()}\".");
+                        throw new InvalidOperationException("You don't have permissions to this flow.");
+                    }
+
                     model.Flow = flow;
                     var originalRequest = flow.Requests.Last();
                     model.RequestParameters = originalRequest.Parameters;
@@ -299,7 +311,7 @@ namespace Authr.WebApp.Controllers
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
                     // This is a new auth request, determine which flow to execute.
-                    var flow = new AuthFlow();
+                    var flow = new AuthFlow { UserId = this.User.GetUserId() };
                     model.Flow = flow;
                     model.RequestParameters = requestParameters;
                     var request = flow.AddRequest(requestParameters);
@@ -367,7 +379,8 @@ namespace Authr.WebApp.Controllers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
-                Scope = requestParameters.Scope
+                Scope = requestParameters.Scope,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
         }
@@ -385,7 +398,8 @@ namespace Authr.WebApp.Controllers
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
                 Scope = requestParameters.Scope,
-                RefreshToken = requestParameters.RefreshToken
+                RefreshToken = requestParameters.RefreshToken,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
         }
@@ -399,7 +413,8 @@ namespace Authr.WebApp.Controllers
             {
                 Address = requestParameters.DeviceCodeEndpoint,
                 ClientId = requestParameters.ClientId,
-                Scope = requestParameters.Scope
+                Scope = requestParameters.Scope,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromDeviceCodeResponse(response);
         }
@@ -414,7 +429,8 @@ namespace Authr.WebApp.Controllers
             {
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
-                DeviceCode = requestParameters.DeviceCode
+                DeviceCode = requestParameters.DeviceCode,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
         }
@@ -434,7 +450,8 @@ namespace Authr.WebApp.Controllers
                 ClientSecret = requestParameters.ClientSecret,
                 Scope = requestParameters.Scope,
                 UserName = requestParameters.UserName,
-                Password = requestParameters.Password
+                Password = requestParameters.Password,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
         }
@@ -452,7 +469,8 @@ namespace Authr.WebApp.Controllers
                 redirectUri: request.Parameters.RedirectUri,
                 responseMode: request.Parameters.ResponseMode,
                 nonce: request.Nonce,
-                state: request.State
+                state: request.State,
+                extra: request.Parameters.GetAdditionalParameters()
             );
         }
 
@@ -473,7 +491,8 @@ namespace Authr.WebApp.Controllers
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
                 Code = requestParameters.AuthorizationCode,
-                RedirectUri = requestParameters.RedirectUri
+                RedirectUri = requestParameters.RedirectUri,
+                Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
         }

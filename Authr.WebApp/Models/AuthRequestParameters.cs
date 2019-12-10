@@ -1,3 +1,7 @@
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.AspNetCore.WebUtilities;
+
 namespace Authr.WebApp.Models
 {
     public class AuthRequestParameters
@@ -21,6 +25,7 @@ namespace Authr.WebApp.Models
         public string AuthorizationCode { get; set; }
         public string RefreshToken { get; set; }
         public string DeviceCode { get; set; }
+        public string AdditionalParameters { get; set; }
 
         public AuthRequestParameters Clone()
         {
@@ -40,9 +45,26 @@ namespace Authr.WebApp.Models
                 Password = this.Password,
                 AuthorizationCode = this.AuthorizationCode,
                 RefreshToken = this.RefreshToken,
-                DeviceCode = this.DeviceCode
+                DeviceCode = this.DeviceCode,
+                AdditionalParameters = this.AdditionalParameters
             };
         }
 
+        public IDictionary<string, string> GetAdditionalParameters()
+        {
+            // The additional parameters string should be formed like a query string, i.e. "key1=value1&key2=value2...".
+            var parameters = new Dictionary<string, string>();
+            var parsedParameters = QueryHelpers.ParseNullableQuery(this.AdditionalParameters);
+            if (parsedParameters != null)
+            {
+                foreach (var parameter in parsedParameters)
+                {
+                    // If the same key has multiple values, only keep the first one, as multi-value
+                    // keys cannot be represented in a dictionary, and they don't make sense here anyway.
+                    parameters.Add(parameter.Key, parameter.Value.First());
+                }
+            }
+            return parameters;
+        }
     }
 }

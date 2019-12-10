@@ -357,6 +357,11 @@ var app = new Vue({
                                 <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The password of the resource owner">
                             </div>
                         </div>
+
+                        <div class="form-group">
+                            <label for="requestParameters-additionalParameters">Additional Parameters</label>
+                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="Any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
+                        </div>
                     </div>
                 </div>
 
