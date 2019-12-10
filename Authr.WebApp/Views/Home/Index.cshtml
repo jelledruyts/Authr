@@ -189,6 +189,34 @@ var app = new Vue({
                     toastr.error(error.message);
                     this.processing = false;
                 });
+        },
+        decodeToken: function (token) {
+            var decodedJwt = this.decodeJwt(token);
+            return JSON.stringify(decodedJwt.header, null, 2) + "." + JSON.stringify(decodedJwt.body, null, 2);
+        },
+        decodeJwt: function (jwt) {
+            if (jwt) {
+                var jwtParts = jwt.split('.');
+                if (jwtParts.length > 1) {
+                    var signature = null;
+                    if (jwtParts.length > 2) {
+                        signature: jwtParts[2];
+                    }
+                    return {
+                        header: this.decodeJwtPart(jwtParts[0]),
+                        body: this.decodeJwtPart(jwtParts[1]),
+                        signature: signature
+                    };
+                }
+            }
+            return jwt;
+        },
+        decodeJwtPart: function (jwtPart) {
+            var jwtPartBase64 = jwtPart.replace(/-/g, '+').replace(/_/g, '/');
+            var jwtPartJson = decodeURIComponent(atob(jwtPartBase64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jwtPartJson);
         }
     },
     created: function () {
@@ -433,11 +461,15 @@ var app = new Vue({
 
                 <div v-if="response.idToken">
                     <h5 class="mt-3">ID Token</h5>
-                    <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.idToken" target="_blank">Decode</a></div>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control" id="response-idToken" v-model="response.idToken" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code>{{ decodeToken(response.idToken) }}</code></pre>
                         </div>
                     </div>
                 </div>
@@ -446,11 +478,15 @@ var app = new Vue({
                     <h5 class="mt-3">Access Token</h5>
                     <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
                     <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
-                    <div><a v-bind:href="'https://jwt.ms/#id_token=' + response.accessToken" target="_blank">Decode</a></div>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control" id="response-accessToken" v-model="response.accessToken" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code>{{ decodeToken(response.accessToken) }}</code></pre>
                         </div>
                     </div>
                 </div>
@@ -468,7 +504,12 @@ var app = new Vue({
 
                 <div v-if="response.raw">
                     <h5 class="mt-3">Raw Response</h5>
-                    <pre><code>{{ response.raw }}</code></pre>
+                    <div class="input-group mt-2">
+                        <input type="textarea" class="form-control" id="response-raw" v-model="response.raw" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
                 </div>
 
             </div>
