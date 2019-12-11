@@ -2,6 +2,11 @@ namespace Authr.WebApp
 {
     public static class Constants
     {
+        public static class App
+        {
+            public const string Name = "Authr";
+        }
+
         public static class ClaimTypes
         {
             public const string ObjectId = "oid";

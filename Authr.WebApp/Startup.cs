@@ -50,11 +50,11 @@ namespace Authr.WebApp
                 services.AddDataProtection().PersistKeysToAzureBlobStorage(blob);
             }
 
+            // Set up identity.
             IdentityModelEventSource.ShowPII = true;
             // Don't map any standard OpenID Connect claims to Microsoft-specific claims.
             // See https://leastprivilege.com/2017/11/15/missing-claims-in-the-asp-net-core-2-openid-connect-handler/.
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
-
             services.AddAuthentication(AzureADB2CDefaults.AuthenticationScheme)
                 .AddAzureADB2C(options => Configuration.Bind("AzureAdB2C", options));
             services.Configure<OpenIdConnectOptions>(AzureADB2CDefaults.OpenIdScheme, options =>
@@ -83,8 +83,16 @@ namespace Authr.WebApp
                 options.ExpireTimeSpan = TimeSpan.FromDays(30);
                 options.SlidingExpiration = true;
             });
+
+            // Set up routing and MVC.
+            services.AddRouting(options =>
+            {
+                options.LowercaseUrls = true;
+            });
             services.AddControllersWithViews().AddRazorRuntimeCompilation();
             services.AddRazorPages();
+
+            // Set up additional services.
             services.AddHttpClient();
             var userConfigurationConnectionString = Configuration.GetValue<string>("App:UserConfiguration:ConnectionString");
             if (string.IsNullOrWhiteSpace(userConfigurationConnectionString))

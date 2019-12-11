@@ -12,10 +12,11 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Make tab pages part of main navbar.
+    // TODO: Token decoder tab to paste tokens in (and send to from response tab).
     // TODO: Send custom events and metrics to App Insights.
     // TODO: Keep full http traces.
-    // TODO: Add terms of service and privacy statements.
-    // TODO: Show complete flow on separate tab page (raw JSON?).
+    // TODO: Show complete flow on separate tab page.
     // TODO: Support SAML 2.0.
     // TODO: Support WS-Federation.
     // TODO: Richer client-side validation (https://vuejs.org/v2/cookbook/form-validation.html).
@@ -49,6 +50,18 @@ namespace Authr.WebApp.Controllers
         #endregion
 
         #region Action Methods
+
+        [Route(nameof(Privacy))]
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [Route(nameof(Terms))]
+        public IActionResult Terms()
+        {
+            return View();
+        }
 
         [Route(nameof(Error))]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
