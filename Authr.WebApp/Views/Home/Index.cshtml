@@ -359,6 +359,10 @@ var app = new Vue({
                                 <label for="requestParameters-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The response mode">
                             </div>
+                            <div class="form-group">
+                                <label for="requestParameters-redirectUri">Redirect URI</label>
+                                <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The redirect URI (reply URL) where to send the authentication response after completion">
+                            </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">

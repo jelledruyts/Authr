@@ -12,7 +12,7 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Show and edit (under "Advanced"?) the reply URL.
+    // TODO: Send custom events and metrics to App Insights.
     // TODO: Keep full http traces.
     // TODO: Add terms of service and privacy statements.
     // TODO: Show complete flow on separate tab page (raw JSON?).
