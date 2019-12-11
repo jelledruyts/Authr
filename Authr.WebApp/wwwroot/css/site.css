@@ -77,3 +77,7 @@ body {
 [v-cloak] {
   display: none;
 }
+
+.text-smaller {
+  font-size: smaller;
+}

@@ -24,6 +24,7 @@ var app = new Vue({
                 saveRequestTemplateAsName: null
             },
             selectedIdentityService: null,
+            encodedToken: null,
             processing: false,
             validationMessage: null,
             errorMessage: null
@@ -98,6 +99,8 @@ var app = new Vue({
             setTimeout(() => {
                 // This is executed after Vue rendering is complete; trigger a call to show the tab.
                 $('#' + tabHeaderId).tab('show');
+                // Scroll to the top already (the tab is showing asynchronously so that's not complete yet).
+                document.getElementById('mainTabHeader').scrollIntoView();
             }, 0);
         },
         findById: function(array, id) {
@@ -192,7 +195,10 @@ var app = new Vue({
         },
         decodeToken: function (token) {
             var decodedJwt = this.decodeJwt(token);
-            return JSON.stringify(decodedJwt.header, null, 2) + "." + JSON.stringify(decodedJwt.body, null, 2);
+            if (decodedJwt && decodedJwt.header && decodedJwt.body) {
+                return JSON.stringify(decodedJwt.header, null, 2) + "." + JSON.stringify(decodedJwt.body, null, 2);
+            }
+            return 'Please enter a valid token';
         },
         decodeJwt: function (jwt) {
             if (jwt) {
@@ -209,14 +215,18 @@ var app = new Vue({
                     };
                 }
             }
-            return jwt;
+            return null;
         },
         decodeJwtPart: function (jwtPart) {
-            var jwtPartBase64 = jwtPart.replace(/-/g, '+').replace(/_/g, '/');
-            var jwtPartJson = decodeURIComponent(atob(jwtPartBase64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            return JSON.parse(jwtPartJson);
+            try {
+                var jwtPartBase64 = jwtPart.replace(/-/g, '+').replace(/_/g, '/');
+                var jwtPartJson = decodeURIComponent(atob(jwtPartBase64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jwtPartJson);
+            } catch (e) {
+                return null;
+            }
         }
     },
     created: function () {
@@ -243,6 +253,9 @@ var app = new Vue({
             </li>
             <li class="nav-item" v-if="response">
                 <a class="nav-link" id="mainTabHeaderResponse" data-toggle="tab" href="#mainTabPageResponse" role="tab" aria-controls="mainTabPageResponse" aria-selected="false">Response</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="mainTabHeaderToken" data-toggle="tab" href="#mainTabPageToken" role="tab" aria-controls="mainTabPageToken" aria-selected="false">Token Decoder</a>
             </li>
         </ul>
         <div class="tab-content" id="mainTabContent">
@@ -466,7 +479,7 @@ var app = new Vue({
                 <div v-if="response.idToken">
                     <h5 class="mt-3">ID Token</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control" id="response-idToken" v-model="response.idToken" readonly>
+                        <input type="text" class="form-control text-monospace" id="response-idToken" v-model="response.idToken" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                         </div>
@@ -483,7 +496,7 @@ var app = new Vue({
                     <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
                     <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control" id="response-accessToken" v-model="response.accessToken" readonly>
+                        <input type="text" class="form-control text-monospace" id="response-accessToken" v-model="response.accessToken" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                         </div>
@@ -498,7 +511,7 @@ var app = new Vue({
                 <div v-if="response.refreshToken">
                     <h5 class="mt-3">Refresh Token</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control" id="response-refreshToken" v-model="response.refreshToken" readonly>
+                        <input type="text" class="form-control text-monospace" id="response-refreshToken" v-model="response.refreshToken" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                         </div>
@@ -509,10 +522,27 @@ var app = new Vue({
                 <div v-if="response.raw">
                     <h5 class="mt-3">Raw Response</h5>
                     <div class="input-group mt-2">
-                        <input type="textarea" class="form-control" id="response-raw" v-model="response.raw" readonly>
+                        <input type="textarea" class="form-control text-monospace" id="response-raw" v-model="response.raw" readonly>
                         <div class="input-group-append">
                             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                         </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="tab-pane fade" id="mainTabPageToken" role="tabpanel" aria-labelledby="mainTabHeaderToken">
+                
+                <h5 class="mt-3">Encoded Token</h5>
+
+                <div class="form-group mt-3">
+                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken"></textarea>
+                </div>
+
+                <h5 class="mt-3">Decoded Token</h5>
+                <div class="card">
+                    <div class="card-body">
+                        <pre><code>{{ decodeToken(encodedToken) }}</code></pre>
                     </div>
                 </div>
 

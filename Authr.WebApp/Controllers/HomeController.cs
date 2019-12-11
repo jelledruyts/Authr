@@ -13,10 +13,10 @@ using IdentityModel.Client;
 namespace Authr.WebApp.Controllers
 {
     // TODO: Make tab pages part of main navbar.
-    // TODO: Token decoder tab to paste tokens in (and send to from response tab).
+    // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
     // TODO: Send custom events and metrics to App Insights.
-    // TODO: Keep full http traces.
     // TODO: Show complete flow on separate tab page.
+    // TODO: Keep full http traces.
     // TODO: Support SAML 2.0.
     // TODO: Support WS-Federation.
     // TODO: Richer client-side validation (https://vuejs.org/v2/cookbook/form-validation.html).
