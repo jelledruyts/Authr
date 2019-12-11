@@ -17,6 +17,7 @@ namespace Authr.WebApp.Models
         public string DeviceUserCode { get; set; }
         public string DeviceCodeVerificationUri { get; set; }
         public string Raw { get; set; }
+        public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
 
         public static AuthResponse FromException(Exception value)
         {

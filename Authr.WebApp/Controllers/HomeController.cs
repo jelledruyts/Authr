@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Authr.WebApp.Models;
@@ -12,18 +14,17 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Make tab pages part of main navbar.
-    // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
-    // TODO: Send custom events and metrics to App Insights.
     // TODO: Show complete flow on separate tab page.
     // TODO: Keep full http traces.
-    // TODO: Support SAML 2.0.
-    // TODO: Support WS-Federation.
-    // TODO: Richer client-side validation (https://vuejs.org/v2/cookbook/form-validation.html).
+    // TODO: Make tab pages part of main navbar.
+    // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
     // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
+    // TODO: Remove old flows from cache.
+    // TODO: Support SAML 2.0.
+    // TODO: Support WS-Federation.
     // TODO: Save concrete flow to history.
     // TODO: Migrate to .NET Core 3.1 when App Service supports it.
     public class HomeController : Controller
@@ -34,17 +35,19 @@ namespace Authr.WebApp.Controllers
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IUserConfigurationProvider userConfigurationProvider;
         private readonly IAuthFlowCacheProvider authFlowCacheProvider;
+        private readonly TelemetryClient telemetryClient;
 
         #endregion
 
         #region Constructors
 
-        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider, TelemetryClient telemetryClient)
         {
             this.logger = logger;
             this.httpClientFactory = httpClientFactory;
             this.userConfigurationProvider = userConfigurationProvider;
             this.authFlowCacheProvider = authFlowCacheProvider;
+            this.telemetryClient = telemetryClient;
         }
 
         #endregion
@@ -182,6 +185,7 @@ namespace Authr.WebApp.Controllers
                         }
 
                         await this.userConfigurationProvider.SaveUserConfigurationAsync(userConfiguration);
+                        this.telemetryClient.TrackEvent("UserConfiguration.Saved");
                     }
                 }
             }
@@ -277,6 +281,7 @@ namespace Authr.WebApp.Controllers
                     {
                         // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
                         flow = new AuthFlow { UserId = this.User.GetUserId() };
+                        this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
                         flow.AddExternallyInitiatedRequest();
                     }
 
@@ -293,6 +298,7 @@ namespace Authr.WebApp.Controllers
 
                     var response = AuthResponse.FromAuthResponseParameters(responseParameters);
                     originalRequest.Response = response;
+                    this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", originalRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (originalRequest.Response.TimeCreated - originalRequest.TimeCreated).TotalMilliseconds } });
 
                     // If there is an authorization code response, redeem it immediately for the access token.
                     if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode))
@@ -307,11 +313,15 @@ namespace Authr.WebApp.Controllers
                             authorizationCodeRequestParameters.RequestType = Constants.RequestTypes.AuthorizationCode;
                             authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
                             var authorizationCodeRequest = flow.AddRequest(authorizationCodeRequestParameters);
+                            this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } });
                             var authorizationCodeResponse = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters);
                             authorizationCodeRequest.Response = authorizationCodeResponse;
+                            this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (authorizationCodeRequest.Response.TimeCreated - authorizationCodeRequest.TimeCreated).TotalMilliseconds } });
                         }
                     }
                     flow.IsComplete = true;
+                    flow.TimeCompleted = DateTimeOffset.UtcNow;
+                    this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
                     if (flow.IsComplete && shouldRemoveFlowFromCacheWhenComplete)
                     {
                         await this.authFlowCacheProvider.RemoveAuthFlowAsync(responseParameters.State);
@@ -323,10 +333,12 @@ namespace Authr.WebApp.Controllers
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
                     // This is a new auth request, determine which flow to execute.
-                    var flow = new AuthFlow { UserId = this.User.GetUserId() };
+                    var flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
+                    this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
                     model.Flow = flow;
                     model.RequestParameters = requestParameters;
                     var request = flow.AddRequest(requestParameters);
+                    this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } });
                     if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
                         request.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
@@ -357,6 +369,16 @@ namespace Authr.WebApp.Controllers
                     {
                         request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
                         flow.IsComplete = true;
+                    }
+
+                    if (request.Response != null)
+                    {
+                        this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (request.Response.TimeCreated - request.TimeCreated).TotalMilliseconds } });
+                    }
+                    if (flow.IsComplete)
+                    {
+                        flow.TimeCompleted = DateTimeOffset.UtcNow;
+                        this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
                     }
 
                     // Set the response to the last relevant response received.

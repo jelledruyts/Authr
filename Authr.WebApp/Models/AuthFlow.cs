@@ -7,7 +7,9 @@ namespace Authr.WebApp.Models
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
         public string UserId { get; set; }
-        public DateTimeOffset? TimeCreated { get; set; } = DateTimeOffset.UtcNow;
+        public string RequestType { get; set; }
+        public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
+        public DateTimeOffset? TimeCompleted { get; set; }
         public bool IsComplete { get; set; }
         public IList<AuthRequest> Requests { get; set; } = new List<AuthRequest>();
 
@@ -18,7 +20,6 @@ namespace Authr.WebApp.Models
                 Parameters = parameters,
                 Nonce = Guid.NewGuid().ToString(),
                 State = this.Id, // Set the requests "state" parameter to the flow id so it can be retrieved when the response comes back.
-                TimeCreated = DateTimeOffset.UtcNow,
                 IsInitiatedExternally = false
             };
             this.Requests.Add(request);
@@ -29,7 +30,6 @@ namespace Authr.WebApp.Models
         {
             var request = new AuthRequest()
             {
-                TimeCreated = DateTimeOffset.UtcNow,
                 IsInitiatedExternally = true
             };
             this.Requests.Add(request);

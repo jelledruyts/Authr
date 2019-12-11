@@ -8,7 +8,7 @@ namespace Authr.WebApp.Models
         public string Nonce { get; set; }
         public string State { get; set; }
         public string RequestedRedirectUrl { get; set; }
-        public DateTimeOffset? TimeCreated { get; set; }
+        public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
         public bool IsInitiatedExternally { get; set; }
         public AuthResponse Response { get; set; }
     }
