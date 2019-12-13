@@ -14,7 +14,9 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Device code flow should be 1 logical flow.
     // TODO: Show complete flow on separate tab page.
+    // TODO: Manage user configuration (edit, delete items).
     // TODO: Keep full http traces.
     // TODO: Make tab pages part of main navbar.
     // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
@@ -179,9 +181,6 @@ namespace Authr.WebApp.Controllers
                         {
                             // Add or update the client app in user configuration.
                             var requestTemplate = MergeRequestTemplate(userConfiguration, request.Options.SaveRequestTemplateAsName, request.RequestParameters);
-
-                            // Update the request parameters to refer to the client app.
-                            request.RequestParameters.RequestTemplateId = requestTemplate.Id;
                         }
 
                         await this.userConfigurationProvider.SaveUserConfigurationAsync(userConfiguration);

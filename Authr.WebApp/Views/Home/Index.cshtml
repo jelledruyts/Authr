@@ -23,6 +23,7 @@ var app = new Vue({
                 saveRequestTemplate: false,
                 saveRequestTemplateAsName: null
             },
+            requestTemplateId: null,
             selectedIdentityService: null,
             encodedToken: null,
             processing: false,
@@ -41,6 +42,15 @@ var app = new Vue({
                 this.showTab('mainTabHeaderResponse');
             }
         },
+        'requestTemplateId': function(newValue, oldValue) {
+            if (this.userConfiguration) {
+                var requestTemplate = this.findById(this.userConfiguration.requestTemplates, newValue);
+                if (requestTemplate !== null) {
+                    // Set the request parameters to a clone of the template's request parameters.
+                    this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
+                }
+            }
+        },
         'requestParameters.requestType': function(newValue, oldValue) {
             this.validateParameters();
         },
@@ -52,15 +62,6 @@ var app = new Vue({
         },
         'requestParameters.responseType': function(newValue, oldValue) {
             this.validateParameters();
-        },
-        'requestParameters.requestTemplateId': function(newValue, oldValue) {
-            if (this.userConfiguration) {
-                var requestTemplate = this.findById(this.userConfiguration.requestTemplates, newValue);
-                if (requestTemplate !== null) {
-                    // Set the request parameters to a clone of the template's request parameters.
-                    this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
-                }
-            }
         },
         'requestParameters.identityServiceId': function(newValue, oldValue) {
             if (this.userConfiguration) {
@@ -141,13 +142,11 @@ var app = new Vue({
             }
         },
         prepareDeviceTokenRequestParameters: function(deviceCode) {
-            this.requestParameters.requestTemplateId = null;
             this.requestParameters.requestType = '@Constants.RequestTypes.DeviceToken';
             this.requestParameters.deviceCode = deviceCode;
             this.showTab('mainTabHeaderRequest');
         },
         prepareRefreshTokenRequestParameters: function(refreshToken) {
-            this.requestParameters.requestTemplateId = null;
             this.requestParameters.requestType = '@Constants.RequestTypes.RefreshToken';
             this.requestParameters.refreshToken = refreshToken;
             this.showTab('mainTabHeaderRequest');
@@ -198,7 +197,7 @@ var app = new Vue({
             if (decodedJwt && decodedJwt.header && decodedJwt.body) {
                 return JSON.stringify(decodedJwt.header, null, 2) + "." + JSON.stringify(decodedJwt.body, null, 2);
             }
-            return 'Please enter a valid token';
+            return 'Invalid token';
         },
         decodeJwt: function (jwt) {
             if (jwt) {
@@ -265,7 +264,7 @@ var app = new Vue({
                     <div class="card-header">Request Template</div>
                     <div class="card-body">
                         <div class="form-group">
-                            <select class="form-control" id="requestParameters-requestTemplateId" v-model="requestParameters.requestTemplateId">
+                            <select class="form-control" id="requestTemplateId" v-model="requestTemplateId">
                                 <option v-bind:value="null">None</option>
                                 <option v-for="requestTemplate in userConfiguration.requestTemplates" v-bind:value="requestTemplate.id">{{ requestTemplate.name }}</option>
                             </select>
@@ -276,7 +275,7 @@ var app = new Vue({
                 <div id="identityService-panel" class="card mt-3">
                     <div class="card-header">Identity Service</div>
                     <div class="card-body">
-                        <div class="form-group" v-if="userSignedIn && userConfiguration.identityServices.length > 0 && requestParameters.requestTemplateId === null">
+                        <div class="form-group" v-if="userSignedIn && userConfiguration.identityServices.length > 0">
                             <select class="form-control" id="requestParameters-identityServiceId" v-model="requestParameters.identityServiceId">
                                 <option v-bind:value="null">Custom</option>
                                 <option v-for="identityService in userConfiguration.identityServices" v-bind:value="identityService.id">{{ identityService.name }}</option>
@@ -285,15 +284,15 @@ var app = new Vue({
 
                         <div class="form-group">
                             <label for="requestParameters-authorizationEndpoint">Authorization Endpoint</label>
-                            <input type="text" class="form-control" id="requestParameters-authorizationEndpoint" v-model="requestParameters.authorizationEndpoint" v-bind:readonly="requestParameters.requestTemplateId !== null || requestParameters.identityServiceId !== null" placeholder="The URL of the authorization endpoint">
+                            <input type="text" class="form-control" id="requestParameters-authorizationEndpoint" v-model="requestParameters.authorizationEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="The URL of the authorization endpoint">
                         </div>
                         <div class="form-group">
                             <label for="requestParameters-tokenEndpoint">Token Endpoint</label>
-                            <input type="text" class="form-control" id="requestParameters-tokenEndpoint" v-model="requestParameters.tokenEndpoint" v-bind:readonly="requestParameters.requestTemplateId !== null || requestParameters.identityServiceId !== null" placeholder="The URL of the token endpoint">
+                            <input type="text" class="form-control" id="requestParameters-tokenEndpoint" v-model="requestParameters.tokenEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="The URL of the token endpoint">
                         </div>
                         <div class="form-group">
                             <label for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
-                            <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" v-bind:readonly="requestParameters.requestTemplateId !== null || requestParameters.identityServiceId !== null" placeholder="The URL of the device code endpoint">
+                            <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="The URL of the device code endpoint">
                         </div>
                     </div>
                 </div>
@@ -301,7 +300,7 @@ var app = new Vue({
                 <div id="clientApp-panel" class="card mt-3">
                     <div class="card-header">Client App</div>
                     <div class="card-body">
-                        <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0 && requestParameters.requestTemplateId === null">
+                        <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
                             <select class="form-control" id="requestParameters-clientApplicationId" v-model="requestParameters.clientApplicationId">
                                 <option v-bind:value="null">Custom</option>
                                 <option v-for="clientApplication in selectedIdentityService.clientApplications" v-bind:value="clientApplication.id">{{ clientApplication.name }}</option>
@@ -310,11 +309,11 @@ var app = new Vue({
 
                         <div class="form-group">
                             <label for="requestParameters-clientId">Client ID</label>
-                            <input type="text" class="form-control" id="requestParameters-clientId" v-model="requestParameters.clientId" v-bind:readonly="requestParameters.requestTemplateId !== null || requestParameters.clientApplicationId !== null" placeholder="The client id of the app registered with the identity service">
+                            <input type="text" class="form-control" id="requestParameters-clientId" v-model="requestParameters.clientId" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="The client id of the app registered with the identity service">
                         </div>
                         <div class="form-group">
                             <label for="requestParameters-clientSecret">Client Secret</label>
-                            <input type="password" class="form-control" id="requestParameters-clientSecret" v-model="requestParameters.clientSecret" v-bind:readonly="requestParameters.requestTemplateId !== null || requestParameters.clientApplicationId !== null" placeholder="The client secret of the app registered with the identity service">
+                            <input type="password" class="form-control" id="requestParameters-clientSecret" v-model="requestParameters.clientSecret" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="The client secret of the app registered with the identity service">
                         </div>
                     </div>
                 </div>
@@ -325,87 +324,87 @@ var app = new Vue({
                         <div class="mb-2">
                             <label>Flow</label>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-openIdConnect">OpenID Connect</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-implicit">OAuth 2.0 Implicit Grant</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-refreshToken" value="@Constants.RequestTypes.RefreshToken" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-refreshToken" value="@Constants.RequestTypes.RefreshToken" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-refreshToken">OAuth 2.0 Refresh Token Grant</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
                             </div>
                             <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType" v-bind:disabled="requestParameters.requestTemplateId !== null">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="requestParameters-scope">Scope</label>
-                            <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The scope to request">
+                            <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="The scope to request">
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
                             <div class="form-group">
                                 <label for="requestParameters-responseType">Response Type (<code>id_token</code>, <code>token</code>, <code>code</code>, ...)</label>
-                                <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The response type">
+                                <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" placeholder="The response type">
                             </div>
                             <div class="form-group">
                                 <label for="requestParameters-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
-                                <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The response mode">
+                                <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="The response mode">
                             </div>
                             <div class="form-group">
                                 <label for="requestParameters-redirectUri">Redirect URI</label>
-                                <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The redirect URI (reply URL) where to send the authentication response after completion">
+                                <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="The redirect URI (reply URL) where to send the authentication response after completion">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
                             <div class="form-group">
                                 <label for="requestParameters-deviceCode">Refresh Token</label>
-                                <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The refresh token">
+                                <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" placeholder="The refresh token">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.DeviceToken'">
                             <div class="form-group">
                                 <label for="requestParameters-deviceCode">Device Code</label>
-                                <input type="text" class="form-control" id="requestParameters-deviceCode" v-model="requestParameters.deviceCode" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The device code">
+                                <input type="text" class="form-control" id="requestParameters-deviceCode" v-model="requestParameters.deviceCode" placeholder="The device code">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
                             <div class="form-group">
                                 <label for="requestParameters-userName">User Name</label>
-                                <input type="text" class="form-control" id="requestParameters-userName" v-model="requestParameters.userName" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The user name of the resource owner">
+                                <input type="text" class="form-control" id="requestParameters-userName" v-model="requestParameters.userName" placeholder="The user name of the resource owner">
                             </div>
                             <div class="form-group">
                                 <label for="requestParameters-password">Password</label>
-                                <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="The password of the resource owner">
+                                <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" placeholder="The password of the resource owner">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label for="requestParameters-additionalParameters">Additional Parameters</label>
-                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" v-bind:readonly="requestParameters.requestTemplateId !== null" placeholder="Any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
+                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
                         </div>
                     </div>
                 </div>

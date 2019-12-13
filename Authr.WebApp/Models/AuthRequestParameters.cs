@@ -7,7 +7,6 @@ namespace Authr.WebApp.Models
     public class AuthRequestParameters
     {
         public string RequestType { get; set; }
-        public string RequestTemplateId { get; set; }
         public string IdentityServiceId { get; set; }
         public string ClientApplicationId { get; set; }
         public string MetadataEndpoint { get; set; }
@@ -32,6 +31,9 @@ namespace Authr.WebApp.Models
             return new AuthRequestParameters
             {
                 RequestType = this.RequestType,
+                IdentityServiceId = this.IdentityServiceId,
+                ClientApplicationId = this.ClientApplicationId,
+                MetadataEndpoint = this.MetadataEndpoint,
                 AuthorizationEndpoint = this.AuthorizationEndpoint,
                 TokenEndpoint = this.TokenEndpoint,
                 DeviceCodeEndpoint = this.DeviceCodeEndpoint,
