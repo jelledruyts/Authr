@@ -14,7 +14,6 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Show complete flow on separate tab page.
     // TODO: Manage user configuration (edit, delete items).
     // TODO: Keep full http traces.
     // TODO: Make tab pages part of main navbar.
