@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
 using Authr.WebApp.Models;
 using Azure;
 using Azure.Storage.Blobs;
@@ -19,11 +20,11 @@ namespace Authr.WebApp.Services
             this.client = new BlobServiceClient(connectionString);
         }
 
-        public async Task<AuthFlow> GetAuthFlowAsync(string id)
+        public async Task<AuthFlow> GetAuthFlowAsync(string reference)
         {
             // Get the blob container for the flow but don't create it if it doesn't yet exist.
             var containerClient = this.client.GetBlobContainerClient(BlobContainerName);
-            var blob = containerClient.GetBlobClient(GetBlobName(id));
+            var blob = containerClient.GetBlobClient(GetBlobName(reference));
             try
             {
                 // Download the blob to a stream.
@@ -46,12 +47,12 @@ namespace Authr.WebApp.Services
             }
         }
 
-        public async Task SetAuthFlowAsync(AuthFlow flow)
+        public async Task SetAuthFlowAsync(string reference, AuthFlow flow)
         {
             // Get the blob container for the flow and create it if it doesn't yet exist.
             var containerClient = this.client.GetBlobContainerClient(BlobContainerName);
             await containerClient.CreateIfNotExistsAsync();
-            var blob = containerClient.GetBlobClient(GetBlobName(flow.Id));
+            var blob = containerClient.GetBlobClient(GetBlobName(reference));
 
             // Serialize the JSON stream to blob storage.
             using (var stream = new MemoryStream())
@@ -64,17 +65,17 @@ namespace Authr.WebApp.Services
             }
         }
 
-        public async Task RemoveAuthFlowAsync(string id)
+        public async Task RemoveAuthFlowAsync(string reference)
         {
             // Get the blob container for the flow but don't create it if it doesn't yet exist.
             var containerClient = this.client.GetBlobContainerClient(BlobContainerName);
-            var blob = containerClient.GetBlobClient(GetBlobName(id));
+            var blob = containerClient.GetBlobClient(GetBlobName(reference));
             await blob.DeleteIfExistsAsync();
         }
 
-        private static string GetBlobName(string flowId)
+        private static string GetBlobName(string reference)
         {
-            return $"flow-{flowId}.json";
+            return $"flow-{HttpUtility.UrlEncode(reference)}.json";
         }
     }
 }

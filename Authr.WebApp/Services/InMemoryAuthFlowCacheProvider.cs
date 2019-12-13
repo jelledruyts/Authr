@@ -8,24 +8,24 @@ namespace Authr.WebApp.Services
     {
         private static readonly IDictionary<string, AuthFlow> AuthFlowCache = new Dictionary<string, AuthFlow>();
 
-        public Task<AuthFlow> GetAuthFlowAsync(string id)
+        public Task<AuthFlow> GetAuthFlowAsync(string reference)
         {
-            if (AuthFlowCache.ContainsKey(id))
+            if (AuthFlowCache.ContainsKey(reference))
             {
-                return Task.FromResult(AuthFlowCache[id]);
+                return Task.FromResult(AuthFlowCache[reference]);
             }
             return Task.FromResult((AuthFlow)null);
         }
 
-        public Task SetAuthFlowAsync(AuthFlow flow)
+        public Task SetAuthFlowAsync(string reference, AuthFlow flow)
         {
-            AuthFlowCache[flow.Id] = flow;
+            AuthFlowCache[reference] = flow;
             return Task.CompletedTask;
         }
 
-        public Task RemoveAuthFlowAsync(string id)
+        public Task RemoveAuthFlowAsync(string reference)
         {
-            AuthFlowCache.Remove(id);
+            AuthFlowCache.Remove(reference);
             return Task.CompletedTask;
         }
     }

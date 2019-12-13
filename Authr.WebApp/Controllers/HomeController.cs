@@ -14,7 +14,6 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Device code flow should be 1 logical flow.
     // TODO: Show complete flow on separate tab page.
     // TODO: Manage user configuration (edit, delete items).
     // TODO: Keep full http traces.
@@ -24,7 +23,7 @@ namespace Authr.WebApp.Controllers
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
-    // TODO: Remove old flows from cache.
+    // TODO: Periodically remove old flows from cache.
     // TODO: Support SAML 2.0.
     // TODO: Support WS-Federation.
     // TODO: Save concrete flow to history.
@@ -260,7 +259,7 @@ namespace Authr.WebApp.Controllers
                 {
                     // We have a response to a previously initiated flow, retrieve the flow details from cache.
                     var flow = default(AuthFlow);
-                    var shouldRemoveFlowFromCacheWhenComplete = false;
+                    var flowReferenceToRemoveFromCacheWhenComplete = default(string);
                     if (!string.IsNullOrWhiteSpace(responseParameters.State))
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
@@ -269,7 +268,7 @@ namespace Authr.WebApp.Controllers
                         flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
                         if (flow != null)
                         {
-                            shouldRemoveFlowFromCacheWhenComplete = true;
+                            flowReferenceToRemoveFromCacheWhenComplete = flow.Id;
                         }
                         else
                         {
@@ -321,9 +320,9 @@ namespace Authr.WebApp.Controllers
                     flow.IsComplete = true;
                     flow.TimeCompleted = DateTimeOffset.UtcNow;
                     this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
-                    if (flow.IsComplete && shouldRemoveFlowFromCacheWhenComplete)
+                    if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
                     {
-                        await this.authFlowCacheProvider.RemoveAuthFlowAsync(responseParameters.State);
+                        await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
                     }
 
                     // Set the response to the last relevant response received.
@@ -331,17 +330,29 @@ namespace Authr.WebApp.Controllers
                 }
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
-                    // This is a new auth request, determine which flow to execute.
-                    var flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
-                    this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
+                    // Look up an existing flow if possible.
+                    var flowReferenceToRemoveFromCacheWhenComplete = default(string);
+                    var flow = default(AuthFlow);
+                    if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken && !string.IsNullOrWhiteSpace(requestParameters.DeviceCode))
+                    {
+                        flow = await this.authFlowCacheProvider.GetAuthFlowAsync(requestParameters.DeviceCode);
+                        flowReferenceToRemoveFromCacheWhenComplete = (flow == null ? null : requestParameters.DeviceCode);
+                    }
+                    if (flow == null)
+                    {
+                        flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
+                        this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
+                    }
                     model.Flow = flow;
                     model.RequestParameters = requestParameters;
                     var request = flow.AddRequest(requestParameters);
                     this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } });
+
+                    // Determine which flow to execute.
                     if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
                         request.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
-                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow);
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
                         model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
@@ -357,12 +368,30 @@ namespace Authr.WebApp.Controllers
                     else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
                     {
                         request.Response = await HandleDeviceCodeRequestAsync(requestParameters);
-                        flow.IsComplete = true;
+                        if (string.IsNullOrWhiteSpace(request.Response.DeviceCode))
+                        {
+                            flow.IsComplete = true;
+                        }
+                        else
+                        {
+                            // This is just the first part of the flow, the device token still has to be requested.
+                            // Keep the flow in cache until the device code is exchanged for the token.
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(request.Response.DeviceCode, flow);
+                            flow.IsComplete = false;
+                        }
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
                     {
                         request.Response = await HandleDeviceTokenRequestAsync(requestParameters);
-                        flow.IsComplete = true;
+                        if (string.IsNullOrWhiteSpace(request.Response.Error))
+                        {
+                            flow.IsComplete = true;
+                        }
+                        else
+                        {
+                            // An error occurred so the flow is not complete yet, save changes.
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(requestParameters.DeviceCode, flow);
+                        }
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
                     {
@@ -378,6 +407,10 @@ namespace Authr.WebApp.Controllers
                     {
                         flow.TimeCompleted = DateTimeOffset.UtcNow;
                         this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
+                        if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
+                        {
+                            await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
+                        }
                     }
 
                     // Set the response to the last relevant response received.

@@ -8,5 +8,6 @@ namespace Authr.WebApp.Models
         public string SaveClientApplicationAsName { get; set; }
         public bool SaveRequestTemplate { get; set; }
         public string SaveRequestTemplateAsName { get; set; }
+        public string FlowId { get; set; }
     }
 }
