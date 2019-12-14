@@ -24,7 +24,6 @@ namespace Authr.WebApp.Controllers
     // TODO: Support SAML 2.0.
     // TODO: Support WS-Federation.
     // TODO: Save concrete flow to history.
-    // TODO: Migrate to .NET Core 3.1 when App Service supports it.
     public class HomeController : Controller
     {
         #region Fields
