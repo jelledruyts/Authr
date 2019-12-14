@@ -1,4 +1,7 @@
-﻿@model AuthViewModel
+﻿@{
+    Layout = "_LayoutCore";
+}
+@model AuthViewModel
 @section Scripts {
 <script type="text/javascript">
 toastr.options = {
@@ -242,32 +245,41 @@ var app = new Vue({
         this.flow = @Html.Raw(Json.Serialize(Model.Flow));
         this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
         if (location.hash && location.hash.length > 1) {
-            // If there are parameters in the #fragment of the URL, this is likely an external auth response;
-            // send it to the back-end API for processing.
-            const urlFragment = location.hash.substr(1).split('&').reduce((prev, item) => Object.assign({[decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ')]: decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ')}, prev), {});
-            this.submitResponse(urlFragment);
+            if (location.hash === '#request') {
+                this.showTab('mainTabHeaderRequest');
+            }
+            else if (location.hash === '#token') {
+                this.showTab('mainTabHeaderToken');
+            }
+            else {
+                // If there are parameters in the #fragment of the URL, this is likely an external auth response;
+                // send it to the back-end API for processing.
+                const urlFragment = location.hash.substr(1).split('&').reduce((prev, item) => Object.assign({[decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ')]: decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ')}, prev), {});
+                this.submitResponse(urlFragment);
+            }
         }
     }
 });
 </script>
 }
-</section>
-<div id="app" v-cloak>
+@section Menu {
+<ul class="nav navbar-nav flex-grow-1" id="mainTabHeader" role="tablist">
+    <li class="nav-item">
+        <a class="nav-link active" id="mainTabHeaderRequest" data-toggle="tab" href="#mainTabPageRequest" role="tab" aria-controls="mainTabPageRequest" aria-selected="true">New Request</a>
+    </li>
+    <li class="nav-item" v-if="response">
+        <a class="nav-link" id="mainTabHeaderResponse" data-toggle="tab" href="#mainTabPageResponse" role="tab" aria-controls="mainTabPageResponse" aria-selected="false">Response</a>
+    </li>
+    <li class="nav-item" v-if="flow">
+        <a class="nav-link" id="mainTabHeaderFlow" data-toggle="tab" href="#mainTabPageFlow" role="tab" aria-controls="mainTabPageFlow" aria-selected="false">Flow</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" id="mainTabHeaderToken" data-toggle="tab" href="#mainTabPageToken" role="tab" aria-controls="mainTabPageToken" aria-selected="false">Decode Token</a>
+    </li>
+</ul>
+}
+<div v-cloak>
     <form>
-        <ul class="nav nav-tabs" id="mainTabHeader" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" id="mainTabHeaderRequest" data-toggle="tab" href="#mainTabPageRequest" role="tab" aria-controls="mainTabPageRequest" aria-selected="true">New Request</a>
-            </li>
-            <li class="nav-item" v-if="response">
-                <a class="nav-link" id="mainTabHeaderResponse" data-toggle="tab" href="#mainTabPageResponse" role="tab" aria-controls="mainTabPageResponse" aria-selected="false">Response</a>
-            </li>
-            <li class="nav-item" v-if="flow">
-                <a class="nav-link" id="mainTabHeaderFlow" data-toggle="tab" href="#mainTabPageFlow" role="tab" aria-controls="mainTabPageFlow" aria-selected="false">Flow</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" id="mainTabHeaderToken" data-toggle="tab" href="#mainTabPageToken" role="tab" aria-controls="mainTabPageToken" aria-selected="false">Decode Token</a>
-            </li>
-        </ul>
         <div class="tab-content" id="mainTabContent">
             <div class="tab-pane fade show active" id="mainTabPageRequest" role="tabpanel" aria-labelledby="mainTabHeaderRequest">
 

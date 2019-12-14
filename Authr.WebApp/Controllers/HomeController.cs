@@ -15,8 +15,6 @@ using IdentityModel.Client;
 namespace Authr.WebApp.Controllers
 {
     // TODO: Manage user configuration (edit, delete items).
-    // TODO: Keep full http traces.
-    // TODO: Make tab pages part of main navbar.
     // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
     // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
