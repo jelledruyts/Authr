@@ -14,15 +14,14 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Manage user configuration (edit, delete items).
     // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
     // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
     // TODO: Periodically remove old flows from cache.
-    // TODO: Support SAML 2.0.
-    // TODO: Support WS-Federation.
+    // TODO: Support SAML 2.0 (https://saml2.sustainsys.com/en/2.0/getting-started.html, https://www.itfoxtec.com/IdentitySaml2, https://developers.onelogin.com/saml/c-and-aspnet).
+    // TODO: Support WS-Federation (https://docs.microsoft.com/en-us/aspnet/core/security/authentication/ws-federation?view=aspnetcore-3.1).
     // TODO: Save concrete flow to history.
     public class HomeController : Controller
     {
@@ -101,6 +100,41 @@ namespace Authr.WebApp.Controllers
         {
             // This is an API call, do not return a page or redirect the browser but return the data only.
             return HandleApiRequestAsync(null, responseParameters);
+        }
+
+        [Route("api/userConfiguration")]
+        [HttpPost]
+        public async Task<IActionResult> SaveUserConfiguration([FromBody] UserConfiguration userConfiguration)
+        {
+            if (!this.User.Identity.IsAuthenticated)
+            {
+                this.logger.LogWarning("A request was made to save user configuration but the user is not authenticated.");
+                return Unauthorized();
+            }
+
+            // Ensure the User ID cannot be spoofed.
+            userConfiguration.UserId = this.User.GetUserId();
+
+            // Ensure IDs are always set.
+            foreach (var requestTemplate in userConfiguration.RequestTemplates.Where(r => string.IsNullOrWhiteSpace(r.Id)))
+            {
+                requestTemplate.Id = Guid.NewGuid().ToString();
+            }
+            foreach (var identityService in userConfiguration.IdentityServices)
+            {
+                if (string.IsNullOrWhiteSpace(identityService.Id))
+                {
+                    identityService.Id = Guid.NewGuid().ToString();
+                }
+                foreach (var clientApplication in identityService.ClientApplications.Where(c => string.IsNullOrWhiteSpace(c.Id)))
+                {
+                    clientApplication.Id = Guid.NewGuid().ToString();
+                }
+            }
+
+            await this.userConfigurationProvider.SaveUserConfigurationAsync(userConfiguration);
+            this.telemetryClient.TrackEvent("UserConfiguration.Saved");
+            return Ok(userConfiguration);
         }
 
         #endregion

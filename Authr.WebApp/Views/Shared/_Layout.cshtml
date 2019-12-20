@@ -9,6 +9,12 @@
     <li class="nav-item">
         <a class="nav-link text-dark" asp-controller="Home" asp-action="Index" asp-fragment="token">Decode Token</a>
     </li>
+    @if (User.Identity.IsAuthenticated)
+    {
+    <li class="nav-item">
+        <a class="nav-link text-dark" asp-controller="Home" asp-action="Index" asp-fragment="configuration">Configuration</a>
+    </li>
+    }
 </ul>
 }
 @RenderBody()
