@@ -18,6 +18,7 @@ var app = new Vue({
             response: null,
             flow: null,
             userConfiguration: null,
+            userConfigurationEdit: null,
             requestOptions: {
                 saveIdentityService: false,
                 saveIdentityServiceAsName: null,
@@ -104,6 +105,10 @@ var app = new Vue({
                     this.requestParameters.clientSecret = clientApplication.clientSecret;
                 }
             }
+        },
+        'userConfiguration': function(newValue, oldValue) {
+            // Clone the user configuration for editing.
+            this.userConfigurationEdit = JSON.parse(JSON.stringify(newValue));;
         }
     },
     methods: {
@@ -260,7 +265,7 @@ var app = new Vue({
         saveUserConfiguration: function() {
             this.processing = true;
             this.errorMessage = null;
-            axios.post('/api/userConfiguration', this.userConfiguration)
+            axios.post('/api/userConfiguration', this.userConfigurationEdit)
                 .then(response => {
                     this.userConfiguration = response.data;
                     this.processing = false;
@@ -641,7 +646,7 @@ var app = new Vue({
                 <h5 class="mt-3">Encoded Token</h5>
 
                 <div class="form-group mt-3">
-                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken"></textarea>
+                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken" placeholder="Enter the encoded token here (it will never leave your browser!)"></textarea>
                 </div>
 
                 <h5 class="mt-3">Decoded Token</h5>
@@ -652,53 +657,53 @@ var app = new Vue({
                 </div>
 
             </div>
-            <div class="tab-pane fade" id="mainTabPageConfiguration" role="tabpanel" aria-labelledby="mainTabHeaderConfiguration" v-if="userConfiguration">
+            <div class="tab-pane fade" id="mainTabPageConfiguration" role="tabpanel" aria-labelledby="mainTabHeaderConfiguration" v-if="userConfigurationEdit">
                 
                 <h5 class="mt-3">Configuration</h5>
 
-                <div v-if="userConfiguration.requestTemplates.length > 0" class="mt-3">
+                <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-3">
                     <h6>Request Templates</h6>
-                    <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfiguration.requestTemplates">
+                    <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfigurationEdit.requestTemplates">
                         <div class="input-group-prepend">
                             <span class="input-group-text"><i class="far fa-file-alt mr-1" title="Request Template"></i> {{ requestTemplateIndex + 1 }}</span>
                         </div>
                         <input type="text" class="form-control" placeholder="Enter the name of the request template" v-model="requestTemplate.name">
                         <div class="input-group-append">
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfiguration.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfiguration.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfiguration.requestTemplates.length - 1"><i class="fas fa-chevron-down"></i></button>
-                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfiguration.requestTemplates, requestTemplate)" title="Delete this request template"><i class="far fa-trash-alt"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="fas fa-chevron-up"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfigurationEdit.requestTemplates.length - 1"><i class="fas fa-chevron-down"></i></button>
+                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.requestTemplates, requestTemplate)" title="Delete this request template"><i class="far fa-trash-alt"></i></button>
                         </div>
                     </div>
                 </div>
 
-                <div v-if="userConfiguration.identityServices.length > 0" class="mt-5">
+                <div v-if="userConfigurationEdit.identityServices.length > 0" class="mt-5">
                     <h6>Identity Services</h6>
-                    <div v-for="(identityService, identityServiceIndex) in userConfiguration.identityServices">
+                    <div v-for="(identityService, identityServiceIndex) in userConfigurationEdit.identityServices">
                         <div class="input-group mt-3">
                             <div class="input-group-prepend">
                                 <span class="input-group-text"><i class="far fa-id-badge mr-1" title="Identity Service"></i> {{ identityServiceIndex + 1 }}</span>
                             </div>
                             <input type="text" class="form-control" placeholder="Enter the name of the Identity Service" v-model="identityService.name">
                             <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfiguration-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="fas fa-pencil-alt"></i></button>
-                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfiguration.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfiguration.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfiguration.identityServices.length - 1"><i class="fas fa-chevron-down"></i></button>
-                                <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfiguration.identityServices, identityService)" title="Delete this Identity Service"><i class="far fa-trash-alt"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="fas fa-pencil-alt"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="fas fa-chevron-up"></i></button>
+                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfigurationEdit.identityServices.length - 1"><i class="fas fa-chevron-down"></i></button>
+                                <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.identityServices, identityService)" title="Delete this Identity Service"><i class="far fa-trash-alt"></i></button>
                             </div>
                         </div>
-                        <div class="collapse" v-bind:id="'userConfiguration-identityServiceDetails-' +  identityServiceIndex">
+                        <div class="collapse" v-bind:id="'userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex">
                             <div class="card card-body">
                                 <div class="form-group">
-                                    <label for="userConfiguration-authorizationEndpoint">Authorization Endpoint</label>
-                                    <input type="text" class="form-control" v-bind:id="'userConfiguration-authorizationEndpoint-' +  identityServiceIndex" v-model="identityService.authorizationEndpoint" placeholder="Enter the URL of the authorization endpoint">
+                                    <label for="userConfigurationEdit-authorizationEndpoint">Authorization Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-authorizationEndpoint-' +  identityServiceIndex" v-model="identityService.authorizationEndpoint" placeholder="Enter the URL of the authorization endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfiguration-tokenEndpoint">Token Endpoint</label>
-                                    <input type="text" class="form-control" v-bind:id="'userConfiguration-tokenEndpoint-' +  identityServiceIndex" v-model="identityService.tokenEndpoint" placeholder="Enter the URL of the token endpoint">
+                                    <label for="userConfigurationEdit-tokenEndpoint">Token Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-tokenEndpoint-' +  identityServiceIndex" v-model="identityService.tokenEndpoint" placeholder="Enter the URL of the token endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfiguration-deviceCodeEndpoint">Device Code Endpoint</label>
-                                    <input type="text" class="form-control" v-bind:id="'userConfiguration-deviceCodeEndpoint-' +  identityServiceIndex" v-model="identityService.deviceCodeEndpoint" placeholder="Enter the URL of the device code endpoint">
+                                    <label for="userConfigurationEdit-deviceCodeEndpoint">Device Code Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-deviceCodeEndpoint-' +  identityServiceIndex" v-model="identityService.deviceCodeEndpoint" placeholder="Enter the URL of the device code endpoint">
                                 </div>
                                 <h6 class="mt-2">Client Apps</h6>
                                 <div>
@@ -709,21 +714,21 @@ var app = new Vue({
                                             </div>
                                             <input type="text" class="form-control" placeholder="Enter the name of the Client Application" v-model="clientApplication.name">
                                             <div class="input-group-append">
-                                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfiguration-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="fas fa-pencil-alt"></i></button>
+                                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="fas fa-pencil-alt"></i></button>
                                                 <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(identityService.clientApplications, clientApplication)" title="Move this Client Application up in the list" v-bind:disabled="clientApplicationIndex === 0"><i class="fas fa-chevron-up"></i></button>
                                                 <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(identityService.clientApplications, clientApplication)" title="Move this Client Application down in the list" v-bind:disabled="clientApplicationIndex === identityService.clientApplications.length - 1"><i class="fas fa-chevron-down"></i></button>
                                                 <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(identityService.clientApplications, clientApplication)" title="Delete this Client Application"><i class="far fa-trash-alt"></i></button>
                                             </div>
                                         </div>
-                                        <div class="collapse" v-bind:id="'userConfiguration-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex">
+                                        <div class="collapse" v-bind:id="'userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex">
                                             <div class="card card-body">
                                                 <div class="form-group">
-                                                    <label for="userConfiguration-clientId">Client ID</label>
-                                                    <input type="text" class="form-control" v-bind:id="'userConfiguration-clientId-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientId" placeholder="Enter the client id of the app registered with the identity service">
+                                                    <label for="userConfigurationEdit-clientId">Client ID</label>
+                                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-clientId-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientId" placeholder="Enter the client id of the app registered with the identity service">
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="userConfiguration-clientSecret">Client Secret</label>
-                                                    <input type="password" class="form-control" v-bind:id="'userConfiguration-clientSecret-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientSecret" placeholder="Enter the client secret of the app registered with the identity service">
+                                                    <label for="userConfigurationEdit-clientSecret">Client Secret</label>
+                                                    <input type="password" class="form-control" v-bind:id="'userConfigurationEdit-clientSecret-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientSecret" placeholder="Enter the client secret of the app registered with the identity service">
                                                 </div>
                                             </div>
                                         </div>
@@ -733,7 +738,7 @@ var app = new Vue({
                             </div>
                         </div>
                     </div>
-                    <button class="btn btn-secondary mt-3" type="button" v-on:click="addIdentityService(userConfiguration.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
+                    <button class="btn btn-secondary mt-3" type="button" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
                 </div>
 
                 <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-5" v-bind:disabled="processing" type="button"><i class="fas fa-save"></i> Save Configuration <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
