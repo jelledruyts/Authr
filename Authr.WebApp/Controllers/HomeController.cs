@@ -14,7 +14,7 @@ using IdentityModel.Client;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Show interpretation of claims in token decoder tab (and send raw tokens to it from response tab).
+    // TODO: Make redirect URL optional at request/params time, and fill in only when performing the actual request.
     // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
