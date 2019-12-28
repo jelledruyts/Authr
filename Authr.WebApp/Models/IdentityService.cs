@@ -11,6 +11,7 @@ namespace Authr.WebApp.Models
         public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
+        public string SamlSignOnEndpoint { get; set; }
         public IList<ClientApplication> ClientApplications { get; set; } = new List<ClientApplication>();
 
         public static IdentityService FromRequestParameters(string name, AuthRequestParameters requestParameters)
@@ -30,6 +31,7 @@ namespace Authr.WebApp.Models
             this.AuthorizationEndpoint = requestParameters.AuthorizationEndpoint;
             this.TokenEndpoint = requestParameters.TokenEndpoint;
             this.DeviceCodeEndpoint = requestParameters.DeviceCodeEndpoint;
+            this.SamlSignOnEndpoint = requestParameters.SamlSignOnEndpoint;
         }
     }
 }

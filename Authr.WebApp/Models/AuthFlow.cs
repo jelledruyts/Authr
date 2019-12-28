@@ -19,7 +19,7 @@ namespace Authr.WebApp.Models
             {
                 Parameters = parameters,
                 Nonce = Guid.NewGuid().ToString(),
-                State = this.Id, // Set the requests "state" parameter to the flow id so it can be retrieved when the response comes back.
+                FlowId = this.Id,
                 IsInitiatedExternally = false
             };
             this.Requests.Add(request);

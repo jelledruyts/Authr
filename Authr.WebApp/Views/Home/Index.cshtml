@@ -55,6 +55,9 @@ var app = new Vue({
                 if (decodedToken.tokenType === 'JWT' && decodedToken.header && decodedToken.body) {
                     return JSON.stringify(decodedToken.header, null, 2) + '.' + JSON.stringify(decodedToken.body, null, 2);
                 }
+                if (decodedToken.tokenType === 'SAML' && decodedToken.body) {
+                    return decodedToken.body;
+                }
                 return decodedToken;
             }
             return 'Invalid token';
@@ -95,6 +98,7 @@ var app = new Vue({
                     this.requestParameters.authorizationEndpoint = identityService.authorizationEndpoint;
                     this.requestParameters.tokenEndpoint = identityService.tokenEndpoint;
                     this.requestParameters.deviceCodeEndpoint = identityService.deviceCodeEndpoint;
+                    this.requestParameters.samlSignOnEndpoint = identityService.samlSignOnEndpoint;
 
                     // Check if the current client application is part of the current identity service.
                     var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
@@ -347,6 +351,10 @@ var app = new Vue({
                             <label for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the device code endpoint">
                         </div>
+                        <div class="form-group">
+                            <label for="requestParameters-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
+                            <input type="text" class="form-control" id="requestParameters-samlSignOnEndpoint" v-model="requestParameters.samlSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML sign-on endpoint">
+                        </div>
                     </div>
                 </div>
 
@@ -408,9 +416,13 @@ var app = new Vue({
                                 <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
                             </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
+                                <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
+                            </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
                             <label for="requestParameters-scope">Scope</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
@@ -424,6 +436,8 @@ var app = new Vue({
                                 <label for="requestParameters-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
                             </div>
+                        </div>
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
                             <div class="form-group">
                                 <label for="requestParameters-redirectUri">Redirect URI</label>
                                 <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
@@ -432,7 +446,7 @@ var app = new Vue({
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
                             <div class="form-group">
-                                <label for="requestParameters-deviceCode">Refresh Token</label>
+                                <label for="requestParameters-refreshToken">Refresh Token</label>
                                 <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" placeholder="Enter the refresh token">
                             </div>
                         </div>
@@ -455,9 +469,14 @@ var app = new Vue({
                             </div>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
                             <label for="requestParameters-additionalParameters">Additional Parameters</label>
                             <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
+                        </div>
+
+                        <div class="form-group" v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+                            <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
+                            <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the issuer of the authentication request">
                         </div>
                     </div>
                 </div>
@@ -570,6 +589,22 @@ var app = new Vue({
                     <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
                 </div>
 
+                <div v-if="response.samlResponse">
+                    <h5 class="mt-3">SAML Response</h5>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control text-monospace" id="response-samlResponse" v-model="response.samlResponse" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="far fa-share-square"></i></button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code>{{ decodeToken(response.samlResponse) | token }}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
                 <div v-if="response.raw">
                     <h5 class="mt-3">Raw Response</h5>
                     <div class="input-group mt-2">
@@ -608,6 +643,14 @@ var app = new Vue({
                                 </div>
                             </div>
                         </div>
+                        <div v-if="request.requestMessage">
+                            <div>Request Message:</div>
+                            <div class="card">
+                                <div class="card-body">
+                                    <pre><code>{{ request.requestMessage }}</code></pre>
+                                </div>
+                            </div>
+                        </div>
 
                         <div v-if="request.response">
                             <h5 class="mt-3">Response #<span>{{ requestIndex + 1 }}</span></h5>
@@ -632,18 +675,11 @@ var app = new Vue({
                 <h5 class="mt-3">Encoded Token</h5>
 
                 <div class="form-group mt-3">
-                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken" placeholder="Enter the encoded token here (it will never leave your browser!)"></textarea>
+                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken" placeholder="Enter the token here, which can be a JSON Web Token (JWT) or a SAML response. Note that this token is decoded on your device and will never leave your browser!"></textarea>
                 </div>
 
                 <div v-if="parsedToken">
-                    <h5 class="mt-3">Decoded Token</h5>
-                    <div class="card">
-                        <div class="card-body">
-                            <pre><code>{{ parsedToken.decodedToken | token }}</code></pre>
-                        </div>
-                    </div>
-
-                    <div v-if="parsedToken.claims">
+                    <div v-if="parsedToken.claims && parsedToken.claims.length > 0">
                         <h5 class="mt-3">Claims</h5>
                         <table class="table table-striped table-sm">
                             <thead>
@@ -664,6 +700,16 @@ var app = new Vue({
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+
+                    <h5 class="mt-3">
+                        Decoded Token
+                        <button type="button" class="btn btn-outline-secondary btn-copy ml-1 btn-sm" data-clipboard-target="#parsedToken-decodedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                    </h5>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code id="parsedToken-decodedToken">{{ parsedToken.decodedToken | token }}</code></pre>
+                        </div>
                     </div>
                 </div>
 
@@ -715,6 +761,10 @@ var app = new Vue({
                                 <div class="form-group">
                                     <label for="userConfigurationEdit-deviceCodeEndpoint">Device Code Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-deviceCodeEndpoint-' +  identityServiceIndex" v-model="identityService.deviceCodeEndpoint" placeholder="Enter the URL of the device code endpoint">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userConfigurationEdit-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.samlSignOnEndpoint" placeholder="Enter the URL of the SAML sign-on endpoint">
                                 </div>
                                 <h6 class="mt-2">Client Apps</h6>
                                 <div>

@@ -13,6 +13,7 @@ namespace Authr.WebApp.Models
         public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
+        public string SamlSignOnEndpoint { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
         public string Scope { get; set; }
@@ -25,6 +26,7 @@ namespace Authr.WebApp.Models
         public string RefreshToken { get; set; }
         public string DeviceCode { get; set; }
         public string AdditionalParameters { get; set; }
+        public string SamlServiceProviderIdentifier { get; set; }
 
         public AuthRequestParameters Clone()
         {
@@ -37,6 +39,7 @@ namespace Authr.WebApp.Models
                 AuthorizationEndpoint = this.AuthorizationEndpoint,
                 TokenEndpoint = this.TokenEndpoint,
                 DeviceCodeEndpoint = this.DeviceCodeEndpoint,
+                SamlSignOnEndpoint = this.SamlSignOnEndpoint,
                 ClientId = this.ClientId,
                 ClientSecret = this.ClientSecret,
                 Scope = this.Scope,
@@ -48,7 +51,8 @@ namespace Authr.WebApp.Models
                 AuthorizationCode = this.AuthorizationCode,
                 RefreshToken = this.RefreshToken,
                 DeviceCode = this.DeviceCode,
-                AdditionalParameters = this.AdditionalParameters
+                AdditionalParameters = this.AdditionalParameters,
+                SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier
             };
         }
 

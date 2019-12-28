@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using IdentityModel;
+using ITfoxtec.Identity.Saml2.Schemas;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Authr.WebApp.Models
@@ -38,10 +39,18 @@ namespace Authr.WebApp.Models
         [JsonPropertyName(OidcConstants.AuthorizeResponse.RefreshToken)]
         public string RefreshToken { get; set; }
 
+        [BindProperty(Name = Saml2Constants.Message.SamlResponse)]
+        [JsonPropertyName(Saml2Constants.Message.SamlResponse)]
+        public string SamlResponse { get; set; }
+
+        [BindProperty(Name = Saml2Constants.Message.RelayState)]
+        [JsonPropertyName(Saml2Constants.Message.RelayState)]
+        public string RelayState { get; set; }
+
         public bool IsEmpty()
         {
-            // Check if any of the relevant properties are set, excluding State (as just state without anything else is useless).
-            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken);
+            // Check if any of the relevant properties are set, excluding State and RelayState (as just state without anything else is useless).
+            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken + this.SamlResponse);
         }
     }
 }

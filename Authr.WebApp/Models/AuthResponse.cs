@@ -16,6 +16,7 @@ namespace Authr.WebApp.Models
         public string DeviceCode { get; set; }
         public string DeviceUserCode { get; set; }
         public string DeviceCodeVerificationUri { get; set; }
+        public string SamlResponse { get; set; }
         public string Raw { get; set; }
         public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
 
@@ -46,7 +47,8 @@ namespace Authr.WebApp.Models
                 IdToken = value.IdToken,
                 AccessToken = value.AccessToken,
                 RefreshToken = value.RefreshToken,
-                AuthorizationCode = value.AuthorizationCode
+                AuthorizationCode = value.AuthorizationCode,
+                SamlResponse = value.SamlResponse
             };
         }
 

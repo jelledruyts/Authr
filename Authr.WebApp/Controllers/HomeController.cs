@@ -11,22 +11,24 @@ using Authr.WebApp.Models;
 using Authr.WebApp.Services;
 using IdentityModel;
 using IdentityModel.Client;
+using ITfoxtec.Identity.Saml2;
+using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Make redirect URL optional at request/params time, and fill in only when performing the actual request.
-    // TODO: Add token service from metadata and auto-detect OIDC/OAuth/SAML/...
+    // TODO: Add About page.
+    // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
+    // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).
     // TODO: Radio buttons for common response modes (form_post, query, fragment, <custom>).
     // TODO: Periodically remove old flows from cache.
-    // TODO: Support SAML 2.0 (https://saml2.sustainsys.com/en/2.0/getting-started.html, https://www.itfoxtec.com/IdentitySaml2, https://developers.onelogin.com/saml/c-and-aspnet).
     // TODO: Support WS-Federation (https://docs.microsoft.com/en-us/aspnet/core/security/authentication/ws-federation?view=aspnetcore-3.1).
-    // TODO: Save concrete flow to history.
     public class HomeController : Controller
     {
         #region Fields
 
+        private const string StatePrefixFlow = "flow:";
         private readonly ILogger<HomeController> logger;
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IUserConfigurationProvider userConfigurationProvider;
@@ -287,14 +289,24 @@ namespace Authr.WebApp.Controllers
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())
                 {
-                    // We have a response to a previously initiated flow, retrieve the flow details from cache.
+                    // We have a response to a previously initiated flow, attempt to determine the flow id from an incoming "State" or "RelayState" parameter.
+                    var flowId = default(string);
+                    if (responseParameters.State != null && responseParameters.State.StartsWith(StatePrefixFlow))
+                    {
+                        flowId = responseParameters.State.Substring(StatePrefixFlow.Length);
+                    }
+                    if (string.IsNullOrWhiteSpace(flowId) && responseParameters.RelayState != null && responseParameters.RelayState.StartsWith(StatePrefixFlow))
+                    {
+                        flowId = responseParameters.RelayState.Substring(StatePrefixFlow.Length);
+                    }
+
+                    // Retrieve the flow details from cache.
                     var flow = default(AuthFlow);
                     var flowReferenceToRemoveFromCacheWhenComplete = default(string);
-                    if (!string.IsNullOrWhiteSpace(responseParameters.State))
+                    if (!string.IsNullOrWhiteSpace(flowId))
                     {
                         // We have a state correlation id, this a response to an existing request we should have full request details for.
                         // The flow id should be in the State parameter as passed in during the request original.
-                        var flowId = responseParameters.State;
                         flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
                         if (flow != null)
                         {
@@ -302,9 +314,11 @@ namespace Authr.WebApp.Controllers
                         }
                         else
                         {
-                            this.logger.LogWarning($"Flow with original request not found for state \"{responseParameters.State}\".");
+                            this.logger.LogWarning($"Flow with original request not found for flow id \"{flowId}\".");
                         }
                     }
+
+                    // If no flow was found, track it as an externally initiated request.
                     if (flow == null)
                     {
                         // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
@@ -320,10 +334,11 @@ namespace Authr.WebApp.Controllers
                         throw new InvalidOperationException("You don't have permissions to this flow.");
                     }
 
-                    model.Flow = flow;
                     var originalRequest = flow.Requests.Last();
+                    model.Flow = flow;
                     model.RequestParameters = originalRequest.Parameters;
 
+                    // Populate the response from the incoming parameters.
                     var response = AuthResponse.FromAuthResponseParameters(responseParameters);
                     originalRequest.Response = response;
                     this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", originalRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (originalRequest.Response.TimeCreated - originalRequest.TimeCreated).TotalMilliseconds } });
@@ -360,6 +375,12 @@ namespace Authr.WebApp.Controllers
                 }
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
+                    // Set defaults if omitted.
+                    if (string.IsNullOrWhiteSpace(requestParameters.RedirectUri))
+                    {
+                        requestParameters.RedirectUri = GetDefaultRedirectUri();
+                    }
+
                     // Look up an existing flow if possible.
                     var flowReferenceToRemoveFromCacheWhenComplete = default(string);
                     var flow = default(AuthFlow);
@@ -428,6 +449,12 @@ namespace Authr.WebApp.Controllers
                         request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
                         flow.IsComplete = true;
                     }
+                    else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
+                    {
+                        request.RequestedRedirectUrl = GetSaml2RequestUrl(request);
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                        model.RequestedRedirectUrl = request.RequestedRedirectUrl;
+                    }
 
                     if (request.Response != null)
                     {
@@ -459,7 +486,7 @@ namespace Authr.WebApp.Controllers
                 model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
                 model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
                 model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
-                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
+                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetDefaultRedirectUri();
             }
             return model;
         }
@@ -565,7 +592,7 @@ namespace Authr.WebApp.Controllers
                 redirectUri: request.Parameters.RedirectUri,
                 responseMode: request.Parameters.ResponseMode,
                 nonce: request.Nonce,
-                state: request.State,
+                state: StatePrefixFlow + request.FlowId, // Set the request's "state" parameter to the flow id so it can be correlated when the response comes back.
                 extra: request.Parameters.GetAdditionalParameters()
             );
         }
@@ -591,6 +618,41 @@ namespace Authr.WebApp.Controllers
                 Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);
+        }
+
+        private string GetSaml2RequestUrl(AuthRequest request)
+        {
+            GuardNotEmpty(request.Parameters.SamlSignOnEndpoint, "The SAML sign-on endpoint must be specified for a SAML 2.0 Authentication Request.");
+            GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a SAML 2.0 Authentication Request.");
+            GuardNotEmpty(request.Parameters.SamlServiceProviderIdentifier, "The SAML service provider identifier must be specified for a SAML 2.0 Authentication Request.");
+            var samlConfiguration = new Saml2Configuration();
+            var samlRequest = new Saml2AuthnRequest(samlConfiguration)
+            {
+                IdAsString = "_" + request.FlowId, // Set the request's "ID" parameter to the flow id so it can be correlated when the response comes back.
+                Destination = new Uri(request.Parameters.SamlSignOnEndpoint),
+                AssertionConsumerServiceUrl = new Uri(request.Parameters.RedirectUri),
+                Issuer = request.Parameters.SamlServiceProviderIdentifier,
+                // Additional optional parameters that could be supported in the future:
+                // IsPassive = false,
+                // ForceAuthn = false,
+                // NameIdPolicy = new NameIdPolicy
+                // {
+                //     AllowCreate = true,
+                //     Format = NameIdentifierFormats.Email.ToString(),
+                //     SPNameQualifier = request.Parameters.SamlServiceProviderIdentifier
+                // }
+            };
+            var samlRedirectBinding = new Saml2RedirectBinding();
+            samlRedirectBinding.RelayState = StatePrefixFlow + request.FlowId;
+            samlRedirectBinding.Bind(samlRequest);
+            request.RequestMessage = samlRedirectBinding.XmlDocument.OuterXml;
+            return samlRedirectBinding.RedirectLocation.ToString();
+
+        }
+
+        private string GetDefaultRedirectUri()
+        {
+            return this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
         }
 
         private static void GuardNotEmpty(string value, string message)
