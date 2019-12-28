@@ -718,7 +718,20 @@ var app = new Vue({
                 
                 <h5 class="mt-3">Configuration</h5>
 
-                <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-3">
+                <div class="mt-3">
+                    <h6>Metadata</h6>
+                    <div class="input-group mt-2">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">SAML 2.0</span>
+                        </div>
+                        <input type="text" class="form-control text-monospace" id="metadata-saml2" value="@Model.MetadataSaml2Endpoint" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-4">
                     <h6>Request Templates</h6>
                     <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfigurationEdit.requestTemplates">
                         <div class="input-group-prepend">
@@ -733,7 +746,7 @@ var app = new Vue({
                     </div>
                 </div>
 
-                <div v-if="userConfigurationEdit.identityServices.length > 0" class="mt-5">
+                <div v-if="userConfigurationEdit.identityServices.length > 0" class="mt-4">
                     <h6>Identity Services</h6>
                     <div v-for="(identityService, identityServiceIndex) in userConfigurationEdit.identityServices">
                         <div class="input-group mt-3">

@@ -7,5 +7,6 @@ namespace Authr.WebApp.Models
         public AuthResponse Response { get; set; }
         public AuthFlow Flow { get; set; }
         public UserConfiguration UserConfiguration { get; set; }
+        public string MetadataSaml2Endpoint { get; set; }
     }
 }

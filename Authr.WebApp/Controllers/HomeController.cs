@@ -12,10 +12,12 @@ using Authr.WebApp.Services;
 using IdentityModel;
 using IdentityModel.Client;
 using ITfoxtec.Identity.Saml2;
+using ITfoxtec.Identity.Saml2.Schemas.Metadata;
 using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Support SAML POST binding for request?
     // TODO: Add About page.
     // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
@@ -62,6 +64,34 @@ namespace Authr.WebApp.Controllers
         public IActionResult Terms()
         {
             return View();
+        }
+
+        [Route("metadata/saml2")]
+        public IActionResult MetadataSaml2()
+        {
+            var entityDescriptor = new EntityDescriptor(GetSamlConfiguration())
+            {
+                ValidUntil = 36500, // 100 years
+                SPSsoDescriptor = new SPSsoDescriptor
+                {
+                    AuthnRequestsSigned = false,
+                    AssertionConsumerServices = new[]
+                    {
+                        new AssertionConsumerService
+                        {
+                            Binding = ProtocolBindings.HttpPost,
+                            Location = new Uri(GetAbsoluteRootUri())
+                        },
+                        new AssertionConsumerService
+                        {
+                            Binding = ProtocolBindings.HttpRedirect,
+                            Location = new Uri(GetAbsoluteRootUri())
+                        }
+                    }
+                }
+            };
+            var metadata = new Saml2Metadata(entityDescriptor);
+            return Content(metadata.CreateMetadata().ToXml(), "text/xml");
         }
 
         [Route(nameof(Error))]
@@ -284,7 +314,10 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthViewModel> HandleCoreAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = new AuthViewModel();
+            var model = new AuthViewModel
+            {
+                MetadataSaml2Endpoint = this.Url.Action(nameof(MetadataSaml2), null, null, this.Request.Scheme)
+            };
             try
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())
@@ -378,7 +411,7 @@ namespace Authr.WebApp.Controllers
                     // Set defaults if omitted.
                     if (string.IsNullOrWhiteSpace(requestParameters.RedirectUri))
                     {
-                        requestParameters.RedirectUri = GetDefaultRedirectUri();
+                        requestParameters.RedirectUri = GetAbsoluteRootUri();
                     }
 
                     // Look up an existing flow if possible.
@@ -486,7 +519,7 @@ namespace Authr.WebApp.Controllers
                 model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
                 model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
                 model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
-                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetDefaultRedirectUri();
+                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetAbsoluteRootUri();
             }
             return model;
         }
@@ -625,8 +658,7 @@ namespace Authr.WebApp.Controllers
             GuardNotEmpty(request.Parameters.SamlSignOnEndpoint, "The SAML sign-on endpoint must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.SamlServiceProviderIdentifier, "The SAML service provider identifier must be specified for a SAML 2.0 Authentication Request.");
-            var samlConfiguration = new Saml2Configuration();
-            var samlRequest = new Saml2AuthnRequest(samlConfiguration)
+            var samlRequest = new Saml2AuthnRequest(GetSamlConfiguration())
             {
                 IdAsString = "_" + request.FlowId, // Set the request's "ID" parameter to the flow id so it can be correlated when the response comes back.
                 Destination = new Uri(request.Parameters.SamlSignOnEndpoint),
@@ -650,7 +682,15 @@ namespace Authr.WebApp.Controllers
 
         }
 
-        private string GetDefaultRedirectUri()
+        private Saml2Configuration GetSamlConfiguration()
+        {
+            return new Saml2Configuration
+            {
+                Issuer = GetAbsoluteRootUri()
+            };
+        }
+
+        private string GetAbsoluteRootUri()
         {
             return this.Url.Action(nameof(Index), null, null, this.Request.Scheme);
         }
