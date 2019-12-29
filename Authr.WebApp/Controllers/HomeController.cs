@@ -17,8 +17,8 @@ using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
+    // TODO: Support signed SAML requests?
     // TODO: Support SAML POST binding for request?
-    // TODO: Add About page.
     // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
@@ -53,6 +53,12 @@ namespace Authr.WebApp.Controllers
         #endregion
 
         #region Action Methods
+
+        [Route(nameof(About))]
+        public IActionResult About()
+        {
+            return View();
+        }
 
         [Route(nameof(Privacy))]
         public IActionResult Privacy()
@@ -314,10 +320,7 @@ namespace Authr.WebApp.Controllers
 
         private async Task<AuthViewModel> HandleCoreAsync(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
-            var model = new AuthViewModel
-            {
-                MetadataSaml2Endpoint = this.Url.Action(nameof(MetadataSaml2), null, null, this.Request.Scheme)
-            };
+            var model = new AuthViewModel();
             try
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())

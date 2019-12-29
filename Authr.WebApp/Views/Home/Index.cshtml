@@ -310,6 +310,9 @@ var app = new Vue({
     <li class="nav-item" v-if="userSignedIn">
         <a class="nav-link" id="mainTabHeaderConfiguration" data-toggle="tab" href="#mainTabPageConfiguration" role="tab" aria-controls="mainTabPageConfiguration" aria-selected="false">Configuration</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+    </li>
 </ul>
 }
 <div v-cloak>
@@ -718,19 +721,6 @@ var app = new Vue({
                 
                 <h5 class="mt-3">Configuration</h5>
 
-                <div class="mt-3">
-                    <h6>Metadata</h6>
-                    <div class="input-group mt-2">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">SAML 2.0</span>
-                        </div>
-                        <input type="text" class="form-control text-monospace" id="metadata-saml2" value="@Model.MetadataSaml2Endpoint" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        </div>
-                    </div>
-                </div>
-
                 <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-4">
                     <h6>Request Templates</h6>
                     <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfigurationEdit.requestTemplates">
@@ -815,7 +805,7 @@ var app = new Vue({
                     <button class="btn btn-secondary mt-3" type="button" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
                 </div>
 
-                <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-5" v-bind:disabled="processing" type="button"><i class="fas fa-save"></i> Save Configuration <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-4" v-bind:disabled="processing" type="button"><i class="fas fa-save"></i> Save Configuration <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
 
             </div>
         </div>

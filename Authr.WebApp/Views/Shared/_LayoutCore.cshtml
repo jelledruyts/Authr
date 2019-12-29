@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.3.1/css/all.css" integrity="sha384-mzrmE5qonljUremFsqc01SB46JvROS7bZs3IO2EmfFsd15uHvIt+Y8vEf7N7fWAU" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @Html.Raw(JavaScriptSnippet.FullScript)
     @if (this.User.Identity.IsAuthenticated)
     {
@@ -40,7 +40,7 @@
         </div>
         <footer class="border-top footer text-muted">
             <div class="container">
-                &copy; @DateTimeOffset.UtcNow.Year @Constants.App.Name | <a href="https://github.com/jelledruyts/Authr">Project Homepage</a> | <a asp-controller="Home" asp-action="Privacy">Privacy &amp; Cookies</a> | <a asp-controller="Home" asp-action="Terms">Terms &amp; Conditions</a>
+                &copy; @DateTimeOffset.UtcNow.Year @Constants.App.Name | <a href="@Constants.App.ProjectHomePage">Project Homepage</a> | <a asp-controller="Home" asp-action="Privacy">Privacy &amp; Cookies</a> | <a asp-controller="Home" asp-action="Terms">Terms &amp; Conditions</a>
             </div>
         </footer>
     </div>
@@ -50,15 +50,15 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
 <environment include="Development">
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
-    <script src="~/js/rawinflate.min.js"></script>
+    <script src="~/js/rawinflate.min.js" asp-append-version="true"></script>
 </environment>
 <environment exclude="Development">
     <script src="https://cdn.jsdelivr.net/npm/vue"></script>
-    <script src="~/js/rawinflate.dev.min.js"></script>
+    <script src="~/js/rawinflate.dev.min.js" asp-append-version="true"></script>
 </environment>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js"></script>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

@@ -1,0 +1,40 @@
+@{
+    ViewData["Title"] = "About";
+}
+
+<h4>@ViewData["Title"] @Constants.App.Name</h4>
+<div>
+    <p>
+        @Constants.App.Name is a generic web application that you can use to test various authentication and authorization scenarios such as
+        <b>OpenID Connect</b>, <b>OAuth 2.0</b> and <b>SAML 2.0</b> &mdash; with any identity service that is compliant with these protocols.
+    </p>
+    <p>
+        You can simply start a <a asp-controller="Home" asp-action="Index">new request</a> using the parameters of your choice, and after the
+        flow is complete you will see the full details and the final response(s) &mdash; decoded and interpreted whenever possible.
+    </p>
+    <p>
+        You can also just use the <a asp-controller="Home" asp-action="Index" asp-fragment="token">token decoder</a>
+        directly if you have a JWT or SAML token and want to see the contents. Note that in that case the token is decoded on your device and
+        will never leave your browser!
+    </p>
+    <p>
+        If you choose to create an account and <a asp-area="AzureADB2C" asp-controller="Account" asp-action="SignIn">sign in</a> to @Constants.App.Name,
+        you can also save the configuration details of your favorite identity services, client applications and even complete request templates for
+        easier reuse later on.
+    </p>
+    <p>
+        If you encounter any issues or have any suggestions, feel free to contact us
+        through our <a href="@Constants.App.ProjectHomePage">project homepage</a>.
+    </p>
+</div>
+
+<h4 class="mt-4">Metadata Endpoints</h4>
+<div class="form-group">
+    <label for="metadata-saml2">SAML 2.0 Metadata Endpoint</label>
+    <div class="input-group">
+        <input type="text" class="form-control text-monospace" id="metadata-saml2" value="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" readonly>
+        <div class="input-group-append">
+            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+        </div>
+    </div>
+</div>

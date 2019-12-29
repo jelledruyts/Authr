@@ -5,6 +5,7 @@ namespace Authr.WebApp
         public static class App
         {
             public const string Name = "Authr";
+            public const string ProjectHomePage = "https://github.com/jelledruyts/Authr";
         }
 
         public static class ClaimTypes
