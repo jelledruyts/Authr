@@ -30,5 +30,11 @@ namespace Authr.WebApp
         {
             public const string SigningCertificate = nameof(SigningCertificate);
         }
+
+        public static class RequestMethods
+        {
+            public const string HttpRedirect = nameof(HttpRedirect);
+            public const string HttpPost = nameof(HttpPost);
+        }
     }
 }

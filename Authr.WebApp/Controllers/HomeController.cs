@@ -17,7 +17,6 @@ using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Support SAML POST binding for request?
     // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
@@ -188,6 +187,11 @@ namespace Authr.WebApp.Controllers
             {
                 // The result of a request was to redirect the browser, send a redirect response.
                 return Redirect(model.RequestedRedirectUrl);
+            }
+            else if (!string.IsNullOrWhiteSpace(model.RequestedPageContent))
+            {
+                // The result of a request was the full page content, return that directly.
+                return Content(model.RequestedPageContent, "text/html");
             }
             else
             {
@@ -489,9 +493,16 @@ namespace Authr.WebApp.Controllers
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                     {
-                        request.RequestedRedirectUrl = await GetSaml2RequestUrl(request);
+                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        {
+                            model.RequestedPageContent = await GetSaml2RequestPostContent(request);
+                        }
+                        else
+                        {
+                            model.RequestedRedirectUrl = await GetSaml2RequestRedirectUrl(request);
+                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                        }
                         await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
 
                     if (request.Response != null)
@@ -525,6 +536,7 @@ namespace Authr.WebApp.Controllers
                 model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
                 model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
                 model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetAbsoluteRootUri();
+                model.RequestParameters.RequestMethod = model.RequestParameters.RequestMethod ?? Constants.RequestMethods.HttpRedirect;
             }
             return model;
         }
@@ -658,7 +670,19 @@ namespace Authr.WebApp.Controllers
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private async Task<string> GetSaml2RequestUrl(AuthRequest request)
+        private async Task<string> GetSaml2RequestRedirectUrl(AuthRequest request)
+        {
+            var binding = await GetSaml2Request<Saml2RedirectBinding>(request);
+            return binding.RedirectLocation.ToString();
+        }
+
+        private async Task<string> GetSaml2RequestPostContent(AuthRequest request)
+        {
+            var binding = await GetSaml2Request<Saml2PostBinding>(request);
+            return binding.PostContent;
+        }
+
+        private async Task<T> GetSaml2Request<T>(AuthRequest request) where T : Saml2Binding<T>, new()
         {
             GuardNotEmpty(request.Parameters.SamlSignOnEndpoint, "The SAML sign-on endpoint must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a SAML 2.0 Authentication Request.");
@@ -688,12 +712,12 @@ namespace Authr.WebApp.Controllers
                 // }
             };
 
-            // Create the SAML HTTP Redirect binding.
-            var samlRedirectBinding = new Saml2RedirectBinding();
-            samlRedirectBinding.RelayState = StatePrefixFlow + request.FlowId;
-            samlRedirectBinding.Bind(samlRequest);
-            request.RequestMessage = samlRedirectBinding.XmlDocument.OuterXml;
-            return samlRedirectBinding.RedirectLocation.ToString();
+            // Create the SAML binding.
+            var binding = new T();
+            binding.RelayState = StatePrefixFlow + request.FlowId;
+            binding.Bind(samlRequest);
+            request.RequestMessage = binding.XmlDocument.OuterXml;
+            return binding;
         }
 
         private async Task<Saml2Configuration> GetSamlConfigurationAsync()

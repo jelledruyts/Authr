@@ -27,6 +27,7 @@ namespace Authr.WebApp.Models
         public string DeviceCode { get; set; }
         public string SamlServiceProviderIdentifier { get; set; }
         public bool SignRequest { get; set; }
+        public string RequestMethod { get; set; }
         public string AdditionalParameters { get; set; }
 
         public AuthRequestParameters Clone()
@@ -54,6 +55,7 @@ namespace Authr.WebApp.Models
                 DeviceCode = this.DeviceCode,
                 SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
                 SignRequest = this.SignRequest,
+                RequestMethod = this.RequestMethod,
                 AdditionalParameters = this.AdditionalParameters
             };
         }

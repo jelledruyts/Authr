@@ -213,6 +213,10 @@ var app = new Vue({
                     this.requestOptions.saveRequestTemplate = false;
                     if (response.data.requestedRedirectUrl) {
                         window.location.replace(response.data.requestedRedirectUrl);
+                    } else if (response.data.requestedPageContent) {
+                        document.open();
+                        document.write(response.data.requestedPageContent);
+                        document.close();
                     } else {
                         this.processing = false;
                     }
@@ -485,6 +489,15 @@ var app = new Vue({
                             <div class="form-group">
                                 <input type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
                                 <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Authentication Request</label>
+                            </div>
+                            <div class="form-check form-check-inline">Binding:</div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpRedirect" value="@Constants.RequestMethods.HttpRedirect" v-model="requestParameters.requestMethod">
+                                <label class="form-check-label" for="requestParameters-requestMethod-httpRedirect">HTTP Redirect</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpPost" value="@Constants.RequestMethods.HttpPost" v-model="requestParameters.requestMethod">
+                                <label class="form-check-label" for="requestParameters-requestMethod-httpPost">HTTP POST</label>
                             </div>
                         </div>
                     </div>
