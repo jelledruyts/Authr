@@ -25,8 +25,9 @@ namespace Authr.WebApp.Models
         public string AuthorizationCode { get; set; }
         public string RefreshToken { get; set; }
         public string DeviceCode { get; set; }
-        public string AdditionalParameters { get; set; }
         public string SamlServiceProviderIdentifier { get; set; }
+        public bool SignRequest { get; set; }
+        public string AdditionalParameters { get; set; }
 
         public AuthRequestParameters Clone()
         {
@@ -51,8 +52,9 @@ namespace Authr.WebApp.Models
                 AuthorizationCode = this.AuthorizationCode,
                 RefreshToken = this.RefreshToken,
                 DeviceCode = this.DeviceCode,
-                AdditionalParameters = this.AdditionalParameters,
-                SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier
+                SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
+                SignRequest = this.SignRequest,
+                AdditionalParameters = this.AdditionalParameters
             };
         }
 

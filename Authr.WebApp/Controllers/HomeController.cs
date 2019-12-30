@@ -17,7 +17,6 @@ using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Support signed SAML requests?
     // TODO: Support SAML POST binding for request?
     // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
@@ -36,18 +35,20 @@ namespace Authr.WebApp.Controllers
         private readonly IUserConfigurationProvider userConfigurationProvider;
         private readonly IAuthFlowCacheProvider authFlowCacheProvider;
         private readonly TelemetryClient telemetryClient;
+        private readonly ICertificateProvider certificateProvider;
 
         #endregion
 
         #region Constructors
 
-        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider, TelemetryClient telemetryClient)
+        public HomeController(ILogger<HomeController> logger, IHttpClientFactory httpClientFactory, IUserConfigurationProvider userConfigurationProvider, IAuthFlowCacheProvider authFlowCacheProvider, TelemetryClient telemetryClient, ICertificateProvider certificateProvider)
         {
             this.logger = logger;
             this.httpClientFactory = httpClientFactory;
             this.userConfigurationProvider = userConfigurationProvider;
             this.authFlowCacheProvider = authFlowCacheProvider;
             this.telemetryClient = telemetryClient;
+            this.certificateProvider = certificateProvider;
         }
 
         #endregion
@@ -73,14 +74,15 @@ namespace Authr.WebApp.Controllers
         }
 
         [Route("metadata/saml2")]
-        public IActionResult MetadataSaml2()
+        public async Task<IActionResult> MetadataSaml2()
         {
-            var entityDescriptor = new EntityDescriptor(GetSamlConfiguration())
+            var samlConfiguration = await this.GetSamlConfigurationAsync();
+            var entityDescriptor = new EntityDescriptor(samlConfiguration)
             {
                 ValidUntil = 36500, // 100 years
                 SPSsoDescriptor = new SPSsoDescriptor
                 {
-                    AuthnRequestsSigned = false,
+                    AuthnRequestsSigned = false, // Requests are only signed when requested, so in metadata we specify that they aren't signed by default.
                     AssertionConsumerServices = new[]
                     {
                         new AssertionConsumerService
@@ -487,7 +489,7 @@ namespace Authr.WebApp.Controllers
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                     {
-                        request.RequestedRedirectUrl = GetSaml2RequestUrl(request);
+                        request.RequestedRedirectUrl = await GetSaml2RequestUrl(request);
                         await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
                         model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
@@ -656,12 +658,20 @@ namespace Authr.WebApp.Controllers
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private string GetSaml2RequestUrl(AuthRequest request)
+        private async Task<string> GetSaml2RequestUrl(AuthRequest request)
         {
             GuardNotEmpty(request.Parameters.SamlSignOnEndpoint, "The SAML sign-on endpoint must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.SamlServiceProviderIdentifier, "The SAML service provider identifier must be specified for a SAML 2.0 Authentication Request.");
-            var samlRequest = new Saml2AuthnRequest(GetSamlConfiguration())
+
+            // Set up the SAML configuration.
+            var samlConfiguration = await GetSamlConfigurationAsync();
+            samlConfiguration.SignAuthnRequest = request.Parameters.SignRequest;
+            // Additional optional parameters that could be supported in the future:
+            // samlConfiguration.SignatureAlgorithm = Saml2SecurityAlgorithms.RsaSha256Signature;
+
+            // Set up the SAML authentication request.
+            var samlRequest = new Saml2AuthnRequest(samlConfiguration)
             {
                 IdAsString = "_" + request.FlowId, // Set the request's "ID" parameter to the flow id so it can be correlated when the response comes back.
                 Destination = new Uri(request.Parameters.SamlSignOnEndpoint),
@@ -677,19 +687,21 @@ namespace Authr.WebApp.Controllers
                 //     SPNameQualifier = request.Parameters.SamlServiceProviderIdentifier
                 // }
             };
+
+            // Create the SAML HTTP Redirect binding.
             var samlRedirectBinding = new Saml2RedirectBinding();
             samlRedirectBinding.RelayState = StatePrefixFlow + request.FlowId;
             samlRedirectBinding.Bind(samlRequest);
             request.RequestMessage = samlRedirectBinding.XmlDocument.OuterXml;
             return samlRedirectBinding.RedirectLocation.ToString();
-
         }
 
-        private Saml2Configuration GetSamlConfiguration()
+        private async Task<Saml2Configuration> GetSamlConfigurationAsync()
         {
             return new Saml2Configuration
             {
-                Issuer = GetAbsoluteRootUri()
+                Issuer = GetAbsoluteRootUri(),
+                SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate)
             };
         }
 

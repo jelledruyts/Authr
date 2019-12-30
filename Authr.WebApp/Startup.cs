@@ -23,12 +23,14 @@ namespace Authr.WebApp
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IWebHostEnvironment webHostEnvironment)
         {
             Configuration = configuration;
+            WebHostEnvironment = webHostEnvironment;
         }
 
         public IConfiguration Configuration { get; }
+        public IWebHostEnvironment WebHostEnvironment { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
@@ -36,6 +38,11 @@ namespace Authr.WebApp
             // Set up Application Insights.
             services.AddSingleton<ITelemetryInitializer>(new CloudRoleTelemetryInitializer("Authr Website"));
             services.AddApplicationInsightsTelemetry();
+
+            // Set up a certificate provider.
+            var certificateProvider = new FileSystemCertificateProvider(WebHostEnvironment.ContentRootFileProvider);
+            certificateProvider.LoadCertificate(Constants.CertificateNames.SigningCertificate, Configuration.GetValue<string>("App:SigningCertificate:Path"), Configuration.GetValue<string>("App:SigningCertificate:Password"));
+            services.AddSingleton<ICertificateProvider>(certificateProvider);
 
             // Configure external Data Protection so that cookies and other secrets can be decoded
             // from different hosting environments (e.g. Web App Slots).

@@ -25,5 +25,10 @@ namespace Authr.WebApp
             public const string DeviceToken = nameof(DeviceToken);
             public const string Saml2AuthnRequest = nameof(Saml2AuthnRequest);
         }
+
+        public static class CertificateNames
+        {
+            public const string SigningCertificate = nameof(SigningCertificate);
+        }
     }
 }

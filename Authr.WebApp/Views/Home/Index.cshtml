@@ -477,9 +477,15 @@ var app = new Vue({
                             <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
                         </div>
 
-                        <div class="form-group" v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
-                            <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
-                            <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the issuer of the authentication request">
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+                            <div class="form-group">
+                                <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
+                                <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the issuer of the authentication request">
+                            </div>
+                            <div class="form-group">
+                                <input type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
+                                <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Authentication Request</label>
+                            </div>
                         </div>
                     </div>
                 </div>
