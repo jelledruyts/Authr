@@ -4,12 +4,6 @@
 @model AuthViewModel
 @section Scripts {
 <script type="text/javascript">
-toastr.options = {
-    'showMethod': 'show',
-    'hideMethod': 'hide'
-};
-new ClipboardJS('.btn-copy');
-
 var app = new Vue({
     el: '#app',
     data: function() {
@@ -129,7 +123,7 @@ var app = new Vue({
     },
     methods: {
         showTab: function(tabHeaderId) {
-            setTimeout(() => {
+            setTimeout(function() {
                 // This is executed after Vue rendering is complete; trigger a call to show the tab.
                 $('#' + tabHeaderId).tab('show');
                 // Scroll to the top already (the tab is showing asynchronously so that's not complete yet).
@@ -198,19 +192,20 @@ var app = new Vue({
             this.flow = null;
             this.processing = true;
             this.errorMessage = null;
+            var that = this;
             axios.post('/api/' + path, value)
-                .then(response => {
+                .then(function(response) {
                     // Make sure to also set the requestParameters coming back, e.g. to get the request parameter details
                     // for a previous request that was now responded to through a URL #fragment (e.g. implicit flow).
-                    this.requestParameters = response.data.requestParameters;
-                    this.response = response.data.response;
+                    that.requestParameters = response.data.requestParameters;
+                    that.response = response.data.response;
                     if (response.data.userConfiguration) {
-                        this.userConfiguration = response.data.userConfiguration;
+                        that.userConfiguration = response.data.userConfiguration;
                     }
-                    this.flow = response.data.flow;
-                    this.requestOptions.saveIdentityService = false;
-                    this.requestOptions.saveClientApplication = false;
-                    this.requestOptions.saveRequestTemplate = false;
+                    that.flow = response.data.flow;
+                    that.requestOptions.saveIdentityService = false;
+                    that.requestOptions.saveClientApplication = false;
+                    that.requestOptions.saveRequestTemplate = false;
                     if (response.data.requestedRedirectUrl) {
                         window.location.replace(response.data.requestedRedirectUrl);
                     } else if (response.data.requestedPageContent) {
@@ -218,14 +213,14 @@ var app = new Vue({
                         document.write(response.data.requestedPageContent);
                         document.close();
                     } else {
-                        this.processing = false;
+                        that.processing = false;
                     }
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.log(error);
-                    this.errorMessage = error.message;
+                    that.errorMessage = error.message;
                     toastr.error(error.message);
-                    this.processing = false;
+                    that.processing = false;
                 });
         },
         sendToTokenDecoder: function (token) {
@@ -257,17 +252,18 @@ var app = new Vue({
         saveUserConfiguration: function() {
             this.processing = true;
             this.errorMessage = null;
+            var that = this;
             axios.post('/api/userConfiguration', this.userConfigurationEdit)
-                .then(response => {
-                    this.userConfiguration = response.data;
-                    this.processing = false;
+                .then(function(response) {
+                    that.userConfiguration = response.data;
+                    that.processing = false;
                     toastr.success('Configuration saved successfully');
                 })
-                .catch(error => {
+                .catch(function(error) {
                     console.log(error);
-                    this.errorMessage = error.message;
+                    that.errorMessage = error.message;
                     toastr.error(error.message);
-                    this.processing = false;
+                    that.processing = false;
                 });
         }
     },
@@ -289,7 +285,12 @@ var app = new Vue({
             else {
                 // If there are parameters in the #fragment of the URL, this is likely an external auth response;
                 // send it to the back-end API for processing.
-                const urlFragment = location.hash.substr(1).split('&').reduce((prev, item) => Object.assign({[decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ')]: decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ')}, prev), {});
+                var urlFragment = {};
+                window.location.hash.substring(1).split('&').map(function(item) { 
+                    var key = decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ');
+                    var value = decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ');
+                    urlFragment[key] = value;
+                });
                 this.submitResponse(urlFragment);
             }
         }
@@ -713,7 +714,7 @@ var app = new Vue({
                             </thead>
                             <tbody>
                                 <tr v-for="claim in parsedToken.claims">
-                                    <td scope="row"><abbr v-bind:title="claim.description">{{ claim.displayName }}</td>
+                                    <td scope="row"><abbr v-bind:title="claim.description">{{ claim.displayName }}</abbr></td>
                                     <td><code>{{ claim.claimType }}</code></td>
                                     <td>
                                         <code>{{ claim.value }}</code>

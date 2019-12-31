@@ -17,7 +17,6 @@ using ITfoxtec.Identity.Saml2.Schemas;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Support Internet Explorer (IE9 and above should be supported by Vue.js).
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
     // TODO: Checkboxes for common scopes (openid, offline_access, email, profile, ...).
     // TODO: Checkboxes for common response types (id_token, token, code, <custom>).

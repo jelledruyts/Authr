@@ -250,7 +250,7 @@
         try {
             // Parse JWT JSON tokens.
             if (decodedToken.tokenType === 'JWT' && decodedToken.body) {
-                Object.keys(decodedToken.body).forEach(claimType => {
+                Object.keys(decodedToken.body).forEach(function (claimType) {
                     var value = decodedToken.body[claimType];
                     claims.push(getClaimInfo(claimType, value));
                 });
@@ -287,3 +287,19 @@
         };
     }
 })(window.Authr = window.Authr || {});
+
+// Set up.
+toastr.options = {
+    'showMethod': 'show',
+    'hideMethod': 'hide'
+};
+
+new ClipboardJS('.btn-copy');
+
+// Polyfills.
+if (!String.prototype.startsWith) {
+    String.prototype.startsWith = function (searchString, position) {
+        position = position || 0;
+        return this.substr(position, searchString.length) === searchString;
+    };
+}
