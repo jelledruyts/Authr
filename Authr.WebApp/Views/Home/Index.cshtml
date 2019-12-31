@@ -431,17 +431,17 @@ var app = new Vue({
                         </div>
 
                         <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
-                            <label for="requestParameters-scope">Scope</label>
+                            <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
                             <div class="form-group">
-                                <label for="requestParameters-responseType">Response Type (<code>id_token</code>, <code>token</code>, <code>code</code>, ...)</label>
+                                <label for="requestParameters-responseType">Response Type (e.g. '<code>id_token</code>', '<code>token</code>', '<code>code</code>', '<code>code token</code>', '<code>code id_token</code>', '<code>id_token token</code>', '<code>code id_token token</code>')</label>
                                 <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" placeholder="Enter the response type">
                             </div>
                             <div class="form-group">
-                                <label for="requestParameters-responseMode">Response Mode (<code>form_post</code>, <code>query</code>, <code>fragment</code>, ...)</label>
+                                <label for="requestParameters-responseMode">Response Mode (e.g. '<code>form_post</code>', '<code>query</code>', '<code>fragment</code>')</label>
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
                             </div>
                         </div>
