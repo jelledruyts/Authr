@@ -2,7 +2,7 @@
 
 ## About
 
-[Authr](https://www.authr.biz/) is a generic web application that you can use to test various authentication and authorization scenarios such as **OpenID Connect**, **OAuth 2.0** and **SAML 2.0** - with any identity service that is compliant with these protocols.
+[Authr](https://www.authr.biz/) is a generic web application that you can use to test various authentication and authorization scenarios such as **OpenID Connect**, **OAuth 2.0**, **SAML 2.0** and **WS-Federation 1.2** - with any identity service that is compliant with these protocols.
 
 You can simply start a new request using the parameters of your choice, and after the flow is complete you will see the full details and the final response(s) - decoded and interpreted whenever possible.
 

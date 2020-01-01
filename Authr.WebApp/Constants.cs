@@ -24,6 +24,7 @@ namespace Authr.WebApp
             public const string DeviceCode = nameof(DeviceCode);
             public const string DeviceToken = nameof(DeviceToken);
             public const string Saml2AuthnRequest = nameof(Saml2AuthnRequest);
+            public const string WsFederationSignIn = nameof(WsFederationSignIn);
         }
 
         public static class CertificateNames

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using IdentityModel;
 using ITfoxtec.Identity.Saml2.Schemas;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Protocols.WsFederation;
 
 namespace Authr.WebApp.Models
 {
@@ -47,10 +48,22 @@ namespace Authr.WebApp.Models
         [JsonPropertyName(Saml2Constants.Message.RelayState)]
         public string RelayState { get; set; }
 
+        [BindProperty(Name = WsFederationConstants.WsFederationParameterNames.Wa)]
+        [JsonPropertyName(WsFederationConstants.WsFederationParameterNames.Wa)]
+        public string Wa { get; set; }
+
+        [BindProperty(Name = WsFederationConstants.WsFederationParameterNames.Wresult)]
+        [JsonPropertyName(WsFederationConstants.WsFederationParameterNames.Wresult)]
+        public string Wresult { get; set; }
+
+        [BindProperty(Name = WsFederationConstants.WsFederationParameterNames.Wctx)]
+        [JsonPropertyName(WsFederationConstants.WsFederationParameterNames.Wctx)]
+        public string Wctx { get; set; }
+
         public bool IsEmpty()
         {
-            // Check if any of the relevant properties are set, excluding State and RelayState (as just state without anything else is useless).
-            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken + this.SamlResponse);
+            // Check if any of the relevant properties are set, excluding State, RelayState and Wctx (as just state without anything else is useless).
+            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken + this.SamlResponse + this.Wa + this.Wresult);
         }
     }
 }

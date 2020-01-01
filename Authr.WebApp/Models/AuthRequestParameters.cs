@@ -14,6 +14,7 @@ namespace Authr.WebApp.Models
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
         public string SamlSignOnEndpoint { get; set; }
+        public string WsFederationSignOnEndpoint { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
         public string Scope { get; set; }
@@ -26,6 +27,7 @@ namespace Authr.WebApp.Models
         public string RefreshToken { get; set; }
         public string DeviceCode { get; set; }
         public string SamlServiceProviderIdentifier { get; set; }
+        public string WsFederationRealmIdentifier { get; set; }
         public bool SignRequest { get; set; }
         public string RequestMethod { get; set; }
         public string AdditionalParameters { get; set; }
@@ -42,6 +44,7 @@ namespace Authr.WebApp.Models
                 TokenEndpoint = this.TokenEndpoint,
                 DeviceCodeEndpoint = this.DeviceCodeEndpoint,
                 SamlSignOnEndpoint = this.SamlSignOnEndpoint,
+                WsFederationSignOnEndpoint = this.WsFederationSignOnEndpoint,
                 ClientId = this.ClientId,
                 ClientSecret = this.ClientSecret,
                 Scope = this.Scope,
@@ -54,6 +57,7 @@ namespace Authr.WebApp.Models
                 RefreshToken = this.RefreshToken,
                 DeviceCode = this.DeviceCode,
                 SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
+                WsFederationRealmIdentifier = this.WsFederationRealmIdentifier,
                 SignRequest = this.SignRequest,
                 RequestMethod = this.RequestMethod,
                 AdditionalParameters = this.AdditionalParameters

@@ -93,6 +93,7 @@ var app = new Vue({
                     this.requestParameters.tokenEndpoint = identityService.tokenEndpoint;
                     this.requestParameters.deviceCodeEndpoint = identityService.deviceCodeEndpoint;
                     this.requestParameters.samlSignOnEndpoint = identityService.samlSignOnEndpoint;
+                    this.requestParameters.wsFederationSignOnEndpoint = identityService.wsFederationSignOnEndpoint;
 
                     // Check if the current client application is part of the current identity service.
                     var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
@@ -363,6 +364,10 @@ var app = new Vue({
                             <label for="requestParameters-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-samlSignOnEndpoint" v-model="requestParameters.samlSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML sign-on endpoint">
                         </div>
+                        <div class="form-group">
+                            <label for="requestParameters-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
+                            <input type="text" class="form-control" id="requestParameters-wsFederationSignOnEndpoint" v-model="requestParameters.wsFederationSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
+                        </div>
                     </div>
                 </div>
 
@@ -428,9 +433,13 @@ var app = new Vue({
                                 <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
                                 <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
                             </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-wsFederationSignIn" value="@Constants.RequestTypes.WsFederationSignIn" v-model="requestParameters.requestType">
+                                <label class="form-check-label" for="requestParameters-requestType-wsFederationSignIn">WS-Federation 1.2 Sign-In</label>
+                            </div>
                         </div>
 
-                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                             <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
@@ -445,7 +454,7 @@ var app = new Vue({
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
                             </div>
                         </div>
-                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
                                 <label for="requestParameters-redirectUri">Redirect URI</label>
                                 <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
@@ -477,29 +486,41 @@ var app = new Vue({
                             </div>
                         </div>
 
-                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
-                            <label for="requestParameters-additionalParameters">Additional Parameters</label>
-                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
-                        </div>
-
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
                             <div class="form-group">
                                 <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
-                                <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the issuer of the authentication request">
+                                <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the application you want to sign in to">
                             </div>
                             <div class="form-group">
                                 <input type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
                                 <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Authentication Request</label>
                             </div>
-                            <div class="form-check form-check-inline">Binding:</div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpRedirect" value="@Constants.RequestMethods.HttpRedirect" v-model="requestParameters.requestMethod">
-                                <label class="form-check-label" for="requestParameters-requestMethod-httpRedirect">HTTP Redirect</label>
+                        </div>
+
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+                            <div class="form-group">
+                                <label for="requestParameters-wsFederationRealmIdentifier">Realm Identifier</label>
+                                <input type="text" class="form-control" id="requestParameters-wsFederationRealmIdentifier" v-model="requestParameters.wsFederationRealmIdentifier" placeholder="Enter the identifier of the realm, i.e. the application you want to sign in to">
                             </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpPost" value="@Constants.RequestMethods.HttpPost" v-model="requestParameters.requestMethod">
-                                <label class="form-check-label" for="requestParameters-requestMethod-httpPost">HTTP POST</label>
+                        </div>
+                        
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+                            <div class="form-group">
+                                <div class="form-check form-check-inline">Request Binding:</div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpRedirect" value="@Constants.RequestMethods.HttpRedirect" v-model="requestParameters.requestMethod">
+                                    <label class="form-check-label" for="requestParameters-requestMethod-httpRedirect">HTTP Redirect</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpPost" value="@Constants.RequestMethods.HttpPost" v-model="requestParameters.requestMethod">
+                                    <label class="form-check-label" for="requestParameters-requestMethod-httpPost">HTTP POST</label>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
+                            <label for="requestParameters-additionalParameters">Additional Parameters</label>
+                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
                         </div>
                     </div>
                 </div>
@@ -624,6 +645,22 @@ var app = new Vue({
                     <div class="card">
                         <div class="card-body">
                             <pre><code>{{ decodeToken(response.samlResponse) | token }}</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="response.wsFederationResponse">
+                    <h5 class="mt-3">WS-Federation Response</h5>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control text-monospace" id="response-wsFederationResponse" v-model="response.wsFederationResponse" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="far fa-share-square"></i></button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code>{{ decodeToken(response.wsFederationResponse) | token }}</code></pre>
                         </div>
                     </div>
                 </div>
@@ -788,6 +825,10 @@ var app = new Vue({
                                 <div class="form-group">
                                     <label for="userConfigurationEdit-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.samlSignOnEndpoint" placeholder="Enter the URL of the SAML sign-on endpoint">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userConfigurationEdit-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-wsFederationSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.wsFederationSignOnEndpoint" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
                                 </div>
                                 <h6 class="mt-2">Client Apps</h6>
                                 <div>

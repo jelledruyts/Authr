@@ -14,12 +14,12 @@ using IdentityModel.Client;
 using ITfoxtec.Identity.Saml2;
 using ITfoxtec.Identity.Saml2.Schemas.Metadata;
 using ITfoxtec.Identity.Saml2.Schemas;
+using Microsoft.IdentityModel.Protocols.WsFederation;
 
 namespace Authr.WebApp.Controllers
 {
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
     // TODO: Periodically remove old flows from cache.
-    // TODO: Support WS-Federation (https://docs.microsoft.com/en-us/aspnet/core/security/authentication/ws-federation?view=aspnetcore-3.1).
     public class HomeController : Controller
     {
         #region Fields
@@ -327,7 +327,7 @@ namespace Authr.WebApp.Controllers
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())
                 {
-                    // We have a response to a previously initiated flow, attempt to determine the flow id from an incoming "State" or "RelayState" parameter.
+                    // We have a response to a previously initiated flow, attempt to determine the flow id from an incoming "State", "RelayState" or "Wctx" parameter.
                     var flowId = default(string);
                     if (responseParameters.State != null && responseParameters.State.StartsWith(StatePrefixFlow))
                     {
@@ -336,6 +336,10 @@ namespace Authr.WebApp.Controllers
                     if (string.IsNullOrWhiteSpace(flowId) && responseParameters.RelayState != null && responseParameters.RelayState.StartsWith(StatePrefixFlow))
                     {
                         flowId = responseParameters.RelayState.Substring(StatePrefixFlow.Length);
+                    }
+                    if (string.IsNullOrWhiteSpace(flowId) && responseParameters.Wctx != null && responseParameters.Wctx.StartsWith(StatePrefixFlow))
+                    {
+                        flowId = responseParameters.Wctx.Substring(StatePrefixFlow.Length);
                     }
 
                     // Retrieve the flow details from cache.
@@ -440,9 +444,9 @@ namespace Authr.WebApp.Controllers
                     // Determine which flow to execute.
                     if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
                     {
-                        request.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
+                        model.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
+                        request.RequestedRedirectUrl = model.RequestedRedirectUrl;
                         await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        model.RequestedRedirectUrl = request.RequestedRedirectUrl;
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
                     {
@@ -496,6 +500,19 @@ namespace Authr.WebApp.Controllers
                         else
                         {
                             model.RequestedRedirectUrl = await GetSaml2RequestRedirectUrl(request);
+                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                        }
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                    }
+                    else if (requestParameters.RequestType == Constants.RequestTypes.WsFederationSignIn)
+                    {
+                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        {
+                            model.RequestedPageContent = GetWsFederationSignInPostContent(request);
+                        }
+                        else
+                        {
+                            model.RequestedRedirectUrl = GetWsFederationSignInRedirectUrl(request);
                             request.RequestedRedirectUrl = model.RequestedRedirectUrl;
                         }
                         await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
@@ -723,6 +740,36 @@ namespace Authr.WebApp.Controllers
                 Issuer = GetAbsoluteRootUri(),
                 SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate)
             };
+        }
+
+        private string GetWsFederationSignInRedirectUrl(AuthRequest request)
+        {
+            return GetWsFederationSignInMessage(request).BuildRedirectUrl();
+        }
+
+        private string GetWsFederationSignInPostContent(AuthRequest request)
+        {
+            return GetWsFederationSignInMessage(request).BuildFormPost();
+        }
+
+        private WsFederationMessage GetWsFederationSignInMessage(AuthRequest request)
+        {
+            GuardNotEmpty(request.Parameters.WsFederationSignOnEndpoint, "The WS-Federation sign-on endpoint must be specified for a WS-Federation 1.2 sign-in request.");
+            GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a WS-Federation 1.2 sign-in request.");
+            GuardNotEmpty(request.Parameters.WsFederationRealmIdentifier, "The realm identifier must be specified for a WS-Federation 1.2 sign-in request.");
+            var message = new WsFederationMessage
+            {
+                IssuerAddress = request.Parameters.WsFederationSignOnEndpoint,
+                Wa = WsFederationConstants.WsFederationActions.SignIn,
+                Wtrealm = request.Parameters.WsFederationRealmIdentifier,
+                Wreply = request.Parameters.RedirectUri,
+                Wctx = StatePrefixFlow + request.FlowId, // Set the request's "wctx" parameter to the flow id so it can be correlated when the response comes back.
+            };
+            foreach (var item in request.Parameters.GetAdditionalParameters())
+            {
+                message.SetParameter(item.Key, item.Value);
+            }
+            return message;
         }
 
         private string GetAbsoluteRootUri()
