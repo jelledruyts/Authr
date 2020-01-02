@@ -338,6 +338,52 @@ var app = new Vue({
                     </div>
                 </div>
 
+                <div id="flow-panel" class="card mt-3">
+                    <div class="card-header">Protocol Flow</div>
+                    <div class="card-body">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-openIdConnect">OpenID Connect</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-implicit">OAuth 2.0 Implicit Grant</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-refreshToken" value="@Constants.RequestTypes.RefreshToken" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-refreshToken">OAuth 2.0 Refresh Token Grant</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-wsFederationSignIn" value="@Constants.RequestTypes.WsFederationSignIn" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-wsFederationSignIn">WS-Federation 1.2 Sign-In</label>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="identityService-panel" class="card mt-3">
                     <div class="card-header">Identity Service</div>
                     <div class="card-body">
@@ -371,7 +417,7 @@ var app = new Vue({
                     </div>
                 </div>
 
-                <div id="clientApp-panel" class="card mt-3">
+                <div id="clientApp-panel" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                     <div class="card-header">Client App</div>
                     <div class="card-body">
                         <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
@@ -395,50 +441,6 @@ var app = new Vue({
                 <div id="requestParameters-panel" class="card mt-3">
                     <div class="card-header">Request Parameters</div>
                     <div class="card-body">
-                        <div class="mb-2">
-                            <label>Flow</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-openIdConnect" value="@Constants.RequestTypes.OpenIdConnect" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-openIdConnect">OpenID Connect</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-implicit" value="@Constants.RequestTypes.Implicit" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-implicit">OAuth 2.0 Implicit Grant</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-authorizationCode" value="@Constants.RequestTypes.AuthorizationCode" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-authorizationCode">OAuth 2.0 Authorization Code Grant</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-clientCredentials" value="@Constants.RequestTypes.ClientCredentials" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-clientCredentials">OAuth 2.0 Client Credentials Grant</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-refreshToken" value="@Constants.RequestTypes.RefreshToken" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-refreshToken">OAuth 2.0 Refresh Token Grant</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceCode" value="@Constants.RequestTypes.DeviceCode" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-deviceCode">OAuth 2.0 Device Authorization Grant - Code Request</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-deviceToken" value="@Constants.RequestTypes.DeviceToken" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-wsFederationSignIn" value="@Constants.RequestTypes.WsFederationSignIn" v-model="requestParameters.requestType">
-                                <label class="form-check-label" for="requestParameters-requestType-wsFederationSignIn">WS-Federation 1.2 Sign-In</label>
-                            </div>
-                        </div>
-
                         <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                             <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">

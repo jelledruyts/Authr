@@ -19,7 +19,6 @@ using Microsoft.IdentityModel.Protocols.WsFederation;
 namespace Authr.WebApp.Controllers
 {
     // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
-    // TODO: Periodically remove old flows from cache.
     public class HomeController : Controller
     {
         #region Fields

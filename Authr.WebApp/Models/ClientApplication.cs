@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 
 namespace Authr.WebApp.Models
 {
@@ -9,7 +8,6 @@ namespace Authr.WebApp.Models
         public string Name { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
-        public IList<string> Scopes { get; set; } = new List<string>();
 
         public static ClientApplication FromRequestParameters(string name, AuthRequestParameters requestParameters)
         {
