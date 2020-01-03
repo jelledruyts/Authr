@@ -37,5 +37,12 @@ namespace Authr.WebApp
             public const string HttpRedirect = nameof(HttpRedirect);
             public const string HttpPost = nameof(HttpPost);
         }
+
+        public static class IdentityServiceImportTypes
+        {
+            public const string Metadata = nameof(Metadata);
+            public const string AzureAD = nameof(AzureAD);
+            public const string AzureADB2C = nameof(AzureADB2C);
+        }
     }
 }

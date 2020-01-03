@@ -7,7 +7,6 @@ namespace Authr.WebApp.Models
     {
         public string Id { get; set; }
         public string Name { get; set; }
-        public string MetadataEndpoint { get; set; }
         public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
@@ -28,7 +27,6 @@ namespace Authr.WebApp.Models
 
         public void Update(AuthRequestParameters requestParameters)
         {
-            this.MetadataEndpoint = requestParameters.MetadataEndpoint;
             this.AuthorizationEndpoint = requestParameters.AuthorizationEndpoint;
             this.TokenEndpoint = requestParameters.TokenEndpoint;
             this.DeviceCodeEndpoint = requestParameters.DeviceCodeEndpoint;

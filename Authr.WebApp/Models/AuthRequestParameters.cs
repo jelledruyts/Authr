@@ -9,7 +9,6 @@ namespace Authr.WebApp.Models
         public string RequestType { get; set; }
         public string IdentityServiceId { get; set; }
         public string ClientApplicationId { get; set; }
-        public string MetadataEndpoint { get; set; }
         public string AuthorizationEndpoint { get; set; }
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
@@ -39,7 +38,6 @@ namespace Authr.WebApp.Models
                 RequestType = this.RequestType,
                 IdentityServiceId = this.IdentityServiceId,
                 ClientApplicationId = this.ClientApplicationId,
-                MetadataEndpoint = this.MetadataEndpoint,
                 AuthorizationEndpoint = this.AuthorizationEndpoint,
                 TokenEndpoint = this.TokenEndpoint,
                 DeviceCodeEndpoint = this.DeviceCodeEndpoint,

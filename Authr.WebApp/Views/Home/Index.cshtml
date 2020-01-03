@@ -23,6 +23,8 @@ var app = new Vue({
             },
             requestTemplateId: null,
             selectedIdentityService: null,
+            identityServiceImportRequestParameters: { importType: '@Constants.IdentityServiceImportTypes.Metadata' },
+            identityServiceImportRequestTarget: null,
             encodedToken: null,
             processing: false,
             validationMessage: null,
@@ -88,12 +90,7 @@ var app = new Vue({
             if (this.userConfiguration) {
                 var identityService = this.findById(this.userConfiguration.identityServices, newValue);
                 if (identityService !== null) {
-                    this.requestParameters.metadataEndpoint = identityService.metadataEndpoint;
-                    this.requestParameters.authorizationEndpoint = identityService.authorizationEndpoint;
-                    this.requestParameters.tokenEndpoint = identityService.tokenEndpoint;
-                    this.requestParameters.deviceCodeEndpoint = identityService.deviceCodeEndpoint;
-                    this.requestParameters.samlSignOnEndpoint = identityService.samlSignOnEndpoint;
-                    this.requestParameters.wsFederationSignOnEndpoint = identityService.wsFederationSignOnEndpoint;
+                    this.copyIdentityServiceProperties(identityService, this.requestParameters);
 
                     // Check if the current client application is part of the current identity service.
                     var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
@@ -140,6 +137,13 @@ var app = new Vue({
                 }
             }
             return null;
+        },
+        copyIdentityServiceProperties: function(from, to) {
+            to.authorizationEndpoint = from.authorizationEndpoint;
+            to.tokenEndpoint = from.tokenEndpoint;
+            to.deviceCodeEndpoint = from.deviceCodeEndpoint;
+            to.samlSignOnEndpoint = from.samlSignOnEndpoint;
+            to.wsFederationSignOnEndpoint = from.wsFederationSignOnEndpoint;
         },
         validateParameters: function() {
             this.validationMessage = '';
@@ -266,6 +270,34 @@ var app = new Vue({
                     toastr.error(error.message);
                     that.processing = false;
                 });
+        },
+        showIdentityServiceImportDialog: function(target) {
+            this.identityServiceImportRequestTarget = target;
+            $('#importIdentityService-modal').modal();
+        },
+        performIdentityServiceImport: function() {
+            this.processing = true;
+            this.errorMessage = null;
+            var that = this;
+            axios.post('/api/identityServiceImportRequest', this.identityServiceImportRequestParameters)
+                .then(function(response) {
+                    var identityService = response.data;
+                    if (identityService) {
+                        if (that.identityServiceImportRequestTarget === 'request') {
+                            that.copyIdentityServiceProperties(identityService, that.requestParameters);
+                        } else if (that.identityServiceImportRequestTarget === 'configuration' && that.userConfigurationEdit !== null) {
+                            that.userConfigurationEdit.identityServices.push(identityService);
+                        }
+                    }
+                    $('#importIdentityService-modal').modal('hide');
+                    that.processing = false;
+                })
+                .catch(function(error) {
+                    console.log(error);
+                    that.errorMessage = error.message;
+                    toastr.error(error.message);
+                    that.processing = false;
+                });
         }
     },
     created: function () {
@@ -322,6 +354,64 @@ var app = new Vue({
 </ul>
 }
 <div v-cloak>
+    <div class="modal fade" id="importIdentityService-modal" tabindex="-1" role="dialog" aria-labelledby="importIdentityService-label" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importIdentityService-label">Import Identity Service</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div>
+                        <label>Import from</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-metadata" value="@Constants.IdentityServiceImportTypes.Metadata" v-model="identityServiceImportRequestParameters.importType">
+                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-metadata">Metadata</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureAD" value="@Constants.IdentityServiceImportTypes.AzureAD" v-model="identityServiceImportRequestParameters.importType">
+                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureAD">Azure AD</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureADB2C" value="@Constants.IdentityServiceImportTypes.AzureADB2C" v-model="identityServiceImportRequestParameters.importType">
+                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureADB2C">Azure AD B2C</label>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
+                            <label for="identityServiceImportRequestParameters-openIdConnectMetadataUrl">OpenID Connect Metadata URL</label>
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-openIdConnectMetadataUrl" v-model="identityServiceImportRequestParameters.openIdConnectMetadataUrl" placeholder="Enter the URL of the OpenID Connect metadata document">
+                        </div>
+                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
+                            <label for="identityServiceImportRequestParameters-federationMetadataUrl">Federation Metadata URL</label>
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-federationMetadataUrl" v-model="identityServiceImportRequestParameters.federationMetadataUrl" placeholder="Enter the URL of the federation metadata document">
+                        </div>
+                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureAD'">
+                            <label for="identityServiceImportRequestParameters-tenant">Azure AD Tenant</label>
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Azure AD tenant">
+                        </div>
+                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
+                            <label for="identityServiceImportRequestParameters-tenant">Azure AD B2C Tenant</label>
+                            <div class="input-group mb-3">
+                                <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name of the Azure AD B2C tenant">
+                                <div class="input-group-append">
+                                    <span class="input-group-text">.onmicrosoft.com</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
+                            <label for="identityServiceImportRequestParameters-policyId">Azure AD B2C User Flow (Policy) Name</label>
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-policyId" v-model="identityServiceImportRequestParameters.policyId" placeholder="Enter the name of the Azure AD B2C user flow or policy">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" v-on:click="performIdentityServiceImport()" v-bind:disabled="processing">Import <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
     <form>
         <div class="tab-content" id="mainTabContent">
             <div class="tab-pane fade show active" id="mainTabPageRequest" role="tabpanel" aria-labelledby="mainTabHeaderRequest">
@@ -392,6 +482,10 @@ var app = new Vue({
                                 <option v-bind:value="null">Custom</option>
                                 <option v-for="identityService in userConfiguration.identityServices" v-bind:value="identityService.id">{{ identityService.name }}</option>
                             </select>
+                        </div>
+
+                        <div class="form-group" v-if="requestParameters.identityServiceId === null">
+                            <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('request')"><i class="fas fa-file-import"></i> Import...</button>
                         </div>
 
                         <div class="form-group">
@@ -865,7 +959,10 @@ var app = new Vue({
                             </div>
                         </div>
                     </div>
-                    <button class="btn btn-secondary mt-3" type="button" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-secondary" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
+                        <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('configuration')"><i class="fas fa-file-import"></i> Import Identity Service...</button>
+                    </div>
                 </div>
 
                 <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-4" v-bind:disabled="processing" type="button"><i class="fas fa-save"></i> Save Configuration <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>

@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Web;
+using System.Xml;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -18,7 +21,7 @@ using Microsoft.IdentityModel.Protocols.WsFederation;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Add identity service from metadata and auto-detect OIDC/OAuth/SAML/... (AAD: https://login.microsoftonline.com/47125378-ea52-49bd-8526-43de6833f4aa/federationmetadata/2007-06/federationmetadata.xml; B2C: https://identitysamplesb2c.b2clogin.com/identitysamplesb2c.onmicrosoft.com/B2C_1A_SignUpOrSignInSaml/Samlp/metadata)
+    // TODO: Set "save as" name when selecting an existing item.
     public class HomeController : Controller
     {
         #region Fields
@@ -169,6 +172,95 @@ namespace Authr.WebApp.Controllers
             await this.userConfigurationProvider.SaveUserConfigurationAsync(userConfiguration);
             this.telemetryClient.TrackEvent("UserConfiguration.Saved");
             return Ok(userConfiguration);
+        }
+
+        [Route("api/identityServiceImportRequest")]
+        [HttpPost]
+        public async Task<IdentityService> SubmitIdentityServiceImportRequest([FromBody] IdentityServiceImportRequestParameters identityServiceImportRequestParameters)
+        {
+            if (identityServiceImportRequestParameters == null)
+            {
+                return null;
+            }
+            else if (identityServiceImportRequestParameters.ImportType == Constants.IdentityServiceImportTypes.AzureAD && !string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.Tenant))
+            {
+                var tenant = identityServiceImportRequestParameters.Tenant;
+                return new IdentityService
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = tenant,
+                    AuthorizationEndpoint = $"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize",
+                    TokenEndpoint = $"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
+                    DeviceCodeEndpoint = $"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/devicecode",
+                    SamlSignOnEndpoint = $"https://login.microsoftonline.com/{tenant}/saml2",
+                    WsFederationSignOnEndpoint = $"https://login.microsoftonline.com/{tenant}/wsfed"
+                };
+            }
+            else if (identityServiceImportRequestParameters.ImportType == Constants.IdentityServiceImportTypes.AzureADB2C && !string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.Tenant) && !string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.PolicyId))
+            {
+                var tenant = identityServiceImportRequestParameters.Tenant.Replace(".onmicrosoft.com", string.Empty, StringComparison.InvariantCultureIgnoreCase);
+                var policyId = HttpUtility.UrlEncode(identityServiceImportRequestParameters.PolicyId);
+                return new IdentityService
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = tenant,
+                    AuthorizationEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/authorize?p={policyId}",
+                    TokenEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/token?p={policyId}",
+                    DeviceCodeEndpoint = null, // Not supported by Azure AD B2C.
+                    SamlSignOnEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/samlp/sso/login",
+                    WsFederationSignOnEndpoint = null // Not supported by Azure AD B2C.
+                };
+            }
+            else if (!string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.FederationMetadataUrl) || !string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.OpenIdConnectMetadataUrl))
+            {
+                try
+                {
+                    var identityService = new IdentityService { Id = Guid.NewGuid().ToString() };
+                    var client = this.httpClientFactory.CreateClient();
+                    if (!string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.OpenIdConnectMetadataUrl))
+                    {
+                        var openIdConnectMetadataJson = await client.GetStringAsync(identityServiceImportRequestParameters.OpenIdConnectMetadataUrl);
+                        using (var openIdConnectMetadata = JsonDocument.Parse(openIdConnectMetadataJson))
+                        {
+                            var value = default(JsonElement);
+                            if (openIdConnectMetadata.RootElement.TryGetProperty("issuer", out value))
+                            {
+                                identityService.Name = value.GetString();
+                            }
+                            if (openIdConnectMetadata.RootElement.TryGetProperty("authorization_endpoint", out value))
+                            {
+                                identityService.AuthorizationEndpoint = value.GetString();
+                            }
+                            if (openIdConnectMetadata.RootElement.TryGetProperty("token_endpoint", out value))
+                            {
+                                identityService.TokenEndpoint = value.GetString();
+                            }
+                        }
+                    }
+                    if (!string.IsNullOrWhiteSpace(identityServiceImportRequestParameters.FederationMetadataUrl))
+                    {
+                        var federationMetadataXml = await client.GetStringAsync(identityServiceImportRequestParameters.FederationMetadataUrl);
+                        var federationMetadata = new XmlDocument();
+                        federationMetadata.LoadXml(federationMetadataXml);
+                        var nsmgr = new XmlNamespaceManager(federationMetadata.NameTable);
+                        nsmgr.AddNamespace("saml", "urn:oasis:names:tc:SAML:2.0:metadata");
+                        nsmgr.AddNamespace("fed", "http://docs.oasis-open.org/wsfed/federation/200706");
+                        nsmgr.AddNamespace("wsa", "http://www.w3.org/2005/08/addressing");
+                        if (string.IsNullOrWhiteSpace(identityService.Name))
+                        {
+                            identityService.Name = federationMetadata.SelectSingleNode("saml:EntityDescriptor/@entityID", nsmgr)?.Value;
+                        }
+                        identityService.SamlSignOnEndpoint = federationMetadata.SelectSingleNode("/saml:EntityDescriptor/saml:IDPSSODescriptor/saml:SingleSignOnService[1]/@Location", nsmgr)?.Value;
+                        identityService.WsFederationSignOnEndpoint = federationMetadata.SelectSingleNode("/saml:EntityDescriptor/saml:RoleDescriptor/fed:PassiveRequestorEndpoint/wsa:EndpointReference/wsa:Address/text()", nsmgr)?.Value;
+                    }
+                    return identityService;
+                }
+                catch (Exception exc)
+                {
+                    this.logger.LogWarning(exc, "Could not download metadata: " + exc.Message);
+                }
+            }
+            return null;
         }
 
         #endregion
