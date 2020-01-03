@@ -71,6 +71,9 @@ var app = new Vue({
                 if (requestTemplate !== null) {
                     // Set the request parameters to a clone of the template's request parameters.
                     this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
+                    this.requestOptions.saveRequestTemplateAsName = requestTemplate.name;
+                } else {
+                    this.requestOptions.saveRequestTemplateAsName = null;
                 }
             }
         },
@@ -91,6 +94,7 @@ var app = new Vue({
                 var identityService = this.findById(this.userConfiguration.identityServices, newValue);
                 if (identityService !== null) {
                     this.copyIdentityServiceProperties(identityService, this.requestParameters);
+                    this.requestOptions.saveIdentityServiceAsName = identityService.name;
 
                     // Check if the current client application is part of the current identity service.
                     var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
@@ -101,16 +105,19 @@ var app = new Vue({
                 } else {
                     // There is no identity service, also ensure no client application is set.
                     this.requestParameters.clientApplicationId = null;
+                    this.requestOptions.saveIdentityServiceAsName = null;
                 }
                 this.selectedIdentityService = identityService;
             }
         },
         'requestParameters.clientApplicationId': function(newValue, oldValue) {
+            this.requestOptions.saveClientApplicationAsName = null;
             if (this.selectedIdentityService !== null) {
                 var clientApplication = this.findById(this.selectedIdentityService.clientApplications, newValue);
                 if (clientApplication !== null) {
                     this.requestParameters.clientId = clientApplication.clientId;
                     this.requestParameters.clientSecret = clientApplication.clientSecret;
+                    this.requestOptions.saveClientApplicationAsName = clientApplication.name;
                 }
             }
         },
@@ -628,6 +635,15 @@ var app = new Vue({
                         <div v-if="userSignedIn" class="form-group">
                             <div class="form-group row mt-2">
                                 <div class="col-sm-3 form-check">
+                                    <input type="checkbox" id="saveRequestTemplate" v-model="requestOptions.saveRequestTemplate">
+                                    <label class="form-check-label col-form-label ml-1" for="saveRequestTemplate">Request Template</label>
+                                </div>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" placeholder="Enter the name of the request template to save this as" v-bind:disabled="!requestOptions.saveRequestTemplate" v-model="requestOptions.saveRequestTemplateAsName">
+                                </div>
+                            </div>
+                            <div class="form-group row mt-2">
+                                <div class="col-sm-3 form-check">
                                     <input type="checkbox" id="saveIdentityService" v-model="requestOptions.saveIdentityService">
                                     <label class="form-check-label col-form-label ml-1" for="saveIdentityService">Identity Service</label>
                                 </div>
@@ -642,15 +658,6 @@ var app = new Vue({
                                 </div>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control" placeholder="Enter the name of the Client App to save this as" v-bind:disabled="!requestOptions.saveClientApplication" v-model="requestOptions.saveClientApplicationAsName">
-                                </div>
-                            </div>
-                            <div class="form-group row mt-2">
-                                <div class="col-sm-3 form-check">
-                                    <input type="checkbox" id="saveRequestTemplate" v-model="requestOptions.saveRequestTemplate">
-                                    <label class="form-check-label col-form-label ml-1" for="saveRequestTemplate">Request Template</label>
-                                </div>
-                                <div class="col-sm-9">
-                                    <input type="text" class="form-control" placeholder="Enter the name of the request template to save this as" v-bind:disabled="!requestOptions.saveRequestTemplate" v-model="requestOptions.saveRequestTemplateAsName">
                                 </div>
                             </div>
                         </div>

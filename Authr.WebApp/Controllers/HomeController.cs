@@ -21,7 +21,6 @@ using Microsoft.IdentityModel.Protocols.WsFederation;
 
 namespace Authr.WebApp.Controllers
 {
-    // TODO: Set "save as" name when selecting an existing item.
     public class HomeController : Controller
     {
         #region Fields
