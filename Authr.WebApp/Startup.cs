@@ -35,6 +35,9 @@ namespace Authr.WebApp
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            // Configure support for the SameSite cookies breaking change.
+            services.ConfigureSameSiteCookiePolicy();
+
             // Set up Application Insights.
             services.AddSingleton<ITelemetryInitializer>(new CloudRoleTelemetryInitializer("Authr Website"));
             services.AddApplicationInsightsTelemetry();
@@ -124,6 +127,10 @@ namespace Authr.WebApp
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            // Apply support for the SameSite cookies breaking change.
+            // This must be called before "UseAuthentication" or anything else that writes cookies.
+            app.ApplySameSiteCookiePolicy();
+
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
