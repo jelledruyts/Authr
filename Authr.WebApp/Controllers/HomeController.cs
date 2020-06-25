@@ -78,6 +78,8 @@ namespace Authr.WebApp.Controllers
                 ValidUntil = 36500, // 100 years
                 SPSsoDescriptor = new SPSsoDescriptor
                 {
+                    SigningCertificates = new[] { await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate) },
+                    EncryptionCertificates = new[] { await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate) },
                     AuthnRequestsSigned = false, // Requests are only signed when requested, so in metadata we specify that they aren't signed by default.
                     AssertionConsumerServices = new[]
                     {
@@ -124,7 +126,7 @@ namespace Authr.WebApp.Controllers
 
         [Route("api/request")]
         [HttpPost]
-        public Task<AuthViewModel> SubmitRequest([FromBody]ApiClientRequest request)
+        public Task<AuthViewModel> SubmitRequest([FromBody] ApiClientRequest request)
         {
             // This is an API call, do not return a page or redirect the browser but return the data only.
             return HandleApiRequestAsync(request, null);
@@ -132,7 +134,7 @@ namespace Authr.WebApp.Controllers
 
         [Route("api/response")]
         [HttpPost]
-        public Task<AuthViewModel> SubmitResponse([FromBody]AuthResponseParameters responseParameters)
+        public Task<AuthViewModel> SubmitResponse([FromBody] AuthResponseParameters responseParameters)
         {
             // This is an API call, do not return a page or redirect the browser but return the data only.
             return HandleApiRequestAsync(null, responseParameters);
@@ -828,7 +830,8 @@ namespace Authr.WebApp.Controllers
             return new Saml2Configuration
             {
                 Issuer = GetAbsoluteRootUri(),
-                SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate)
+                SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate),
+                EncryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate)
             };
         }
 

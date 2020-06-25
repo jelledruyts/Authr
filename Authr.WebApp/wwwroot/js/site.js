@@ -70,6 +70,7 @@
     addClaimInfo(wellKnownClaims, 'preferred_username', 'Preferred Username', 'The primary username that the user should be represented as.', null);
     addClaimInfo(wellKnownClaims, 'profile', 'Profile', 'The URL of the profile page of the user.', null);
     addClaimInfo(wellKnownClaims, 'roles', 'Roles', 'The roles that are assigned to the user for the application.', null);
+    addClaimInfo(wellKnownClaims, 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role', 'Role', 'The role that is assigned to the user for the application.', null);
     addClaimInfo(wellKnownClaims, 'http://schemas.microsoft.com/identity/claims/scope', 'Scopes', 'The scopes, i.e. the permissions granted to the client application to act on behalf of the user.', null);
     addClaimInfo(wellKnownClaims, 'scp', 'Scopes', 'The scopes, i.e. the permissions granted to the client application to act on behalf of the user.', null);
     addClaimInfo(wellKnownClaims, 'signin_state', 'Sign-In State', 'The sign-in state of the user.', null);

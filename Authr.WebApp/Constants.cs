@@ -30,6 +30,7 @@ namespace Authr.WebApp
         public static class CertificateNames
         {
             public const string SigningCertificate = nameof(SigningCertificate);
+            public const string EncryptionCertificate = nameof(EncryptionCertificate);
         }
 
         public static class RequestMethods

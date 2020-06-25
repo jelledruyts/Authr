@@ -45,6 +45,7 @@ namespace Authr.WebApp
             // Set up a certificate provider.
             var certificateProvider = new FileSystemCertificateProvider(WebHostEnvironment.ContentRootFileProvider);
             certificateProvider.LoadCertificate(Constants.CertificateNames.SigningCertificate, Configuration.GetValue<string>("App:SigningCertificate:Path"), Configuration.GetValue<string>("App:SigningCertificate:Password"));
+            certificateProvider.LoadCertificate(Constants.CertificateNames.EncryptionCertificate, Configuration.GetValue<string>("App:EncryptionCertificate:Path"), Configuration.GetValue<string>("App:EncryptionCertificate:Password"));
             services.AddSingleton<ICertificateProvider>(certificateProvider);
 
             // Configure external Data Protection so that cookies and other secrets can be decoded
