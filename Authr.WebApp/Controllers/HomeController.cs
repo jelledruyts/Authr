@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
@@ -15,6 +17,7 @@ using Authr.WebApp.Services;
 using IdentityModel;
 using IdentityModel.Client;
 using ITfoxtec.Identity.Saml2;
+using ITfoxtec.Identity.Saml2.Cryptography;
 using ITfoxtec.Identity.Saml2.Schemas.Metadata;
 using ITfoxtec.Identity.Saml2.Schemas;
 using Microsoft.IdentityModel.Protocols.WsFederation;
@@ -262,6 +265,50 @@ namespace Authr.WebApp.Controllers
                 }
             }
             return null;
+        }
+
+        [Route("api/decryptToken")]
+        [HttpPost]
+        public async Task<string> DecryptToken([FromBody] DecryptTokenRequest request)
+        {
+            var decryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate);
+            if (decryptionCertificate == null)
+            {
+                this.logger.LogWarning("A token decryption was requested but an encryption/decryption certificate wasn't configured.");
+                return null;
+            }
+            var encryptedToken = request.EncryptedToken;
+            if (string.IsNullOrWhiteSpace(encryptedToken))
+            {
+                return null;
+            }
+            try
+            {
+                if (encryptedToken.IndexOf('<') < 0)
+                {
+                    // The token doesn't look like XML, Base64 decode it first.
+                    encryptedToken = Encoding.UTF8.GetString(Convert.FromBase64String(encryptedToken));
+                }
+                // Load the encrypted token as an XML document.
+                var tokenXml = new XmlDocument();
+                tokenXml.LoadXml(encryptedToken);
+
+                // Decrypt the encrypted portion of the XML token.
+                new Saml2EncryptedXml(tokenXml, decryptionCertificate.GetSamlRSAPrivateKey()).DecryptDocument();
+                
+                // Return as an indented XML string.
+                using (var stringWriter = new StringWriter(new StringBuilder()))
+                {
+                    var xmlTextWriter = new XmlTextWriter(stringWriter) { Formatting = Formatting.Indented };
+                    tokenXml.Save(xmlTextWriter);
+                    return stringWriter.ToString();
+                }
+            }
+            catch (Exception exc)
+            {
+                this.logger.LogWarning(exc, "Could not decrypt token: " + exc.Message);
+                return null;
+            }
         }
 
         #endregion
@@ -831,7 +878,8 @@ namespace Authr.WebApp.Controllers
             {
                 Issuer = GetAbsoluteRootUri(),
                 SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate),
-                EncryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate)
+                EncryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate),
+                DecryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate)
             };
         }
 

@@ -248,6 +248,7 @@
             return null;
         }
         var claims = [];
+        var isEncrypted = false;
         try {
             // Parse JWT JSON tokens.
             if (decodedToken.tokenType === 'JWT' && decodedToken.body) {
@@ -277,6 +278,12 @@
                             }
                         });
                     }
+
+                    // Find an <EncryptedAssertion> XML node in the SAML namespace.
+                    var encryptedAssertionNode = xml.evaluate('//saml:EncryptedAssertion', xml, nsResolver, XPathResult.ANY_TYPE, null);
+                    if (encryptedAssertionNode.iterateNext()) {
+                        isEncrypted = true;
+                    }
                 }
             }
         } catch (e) {
@@ -284,7 +291,8 @@
         }
         return {
             decodedToken: decodedToken,
-            claims: claims
+            claims: claims,
+            isEncrypted: isEncrypted
         };
     }
 })(window.Authr = window.Authr || {});

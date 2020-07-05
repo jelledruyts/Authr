@@ -26,6 +26,7 @@ var app = new Vue({
             identityServiceImportRequestParameters: { importType: '@Constants.IdentityServiceImportTypes.Metadata' },
             identityServiceImportRequestTarget: null,
             encodedToken: null,
+            decryptedToken: null,
             processing: false,
             validationMessage: null,
             errorMessage: null
@@ -124,6 +125,10 @@ var app = new Vue({
         'userConfiguration': function(newValue, oldValue) {
             // Clone the user configuration for editing.
             this.userConfigurationEdit = JSON.parse(JSON.stringify(newValue));;
+        },
+        'encodedToken': function(newValue, oldValue) {
+            // When the encoded token changes, the decrypted token is no longer valid.
+            this.decryptedToken = null;
         }
     },
     methods: {
@@ -241,6 +246,18 @@ var app = new Vue({
         },
         decodeToken: function (token) {
             return Authr.decodeToken(token);
+        },
+        decryptToken: function (token) {
+            var that = this;
+            axios.post('/api/decryptToken', { encryptedToken: token })
+                .then(function(response) {
+                    that.decryptedToken = response.data;
+                })
+                .catch(function(error) {
+                    console.log(error);
+                    that.errorMessage = error.message;
+                    toastr.error(error.message);
+                });
         },
         deleteItem: function(array, value) {
             array.splice(array.indexOf(value), 1);
@@ -874,6 +891,24 @@ var app = new Vue({
                             <pre><code id="parsedToken-decodedToken">{{ parsedToken.decodedToken | token }}</code></pre>
                         </div>
                     </div>
+
+                    <div v-if="parsedToken.isEncrypted" class="mt-3">
+                        <div v-if="!decryptedToken">
+                            <button type="button" class="btn btn-primary" v-on:click="decryptToken(encodedToken)" title="Decrypt the token (note: this is done server-side so the token will be sent over the network)">Decrypt Token</button>
+                        </div>
+                        <div v-if="decryptedToken">
+                            <h5 class="mt-3">
+                                Decrypted Token
+                                <button type="button" class="btn btn-outline-secondary btn-copy ml-1 btn-sm" data-clipboard-target="#parsedToken-decryptedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                            </h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <pre><code id="parsedToken-decryptedToken">{{ decryptedToken }}</code></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
 
             </div>
