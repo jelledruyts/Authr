@@ -25,6 +25,7 @@ namespace Authr.WebApp.Models
         public string AuthorizationCode { get; set; }
         public string RefreshToken { get; set; }
         public string DeviceCode { get; set; }
+        public string Assertion { get; set; }
         public string SamlServiceProviderIdentifier { get; set; }
         public string WsFederationRealmIdentifier { get; set; }
         public bool SignRequest { get; set; }
@@ -54,6 +55,7 @@ namespace Authr.WebApp.Models
                 AuthorizationCode = this.AuthorizationCode,
                 RefreshToken = this.RefreshToken,
                 DeviceCode = this.DeviceCode,
+                Assertion = this.Assertion,
                 SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
                 WsFederationRealmIdentifier = this.WsFederationRealmIdentifier,
                 SignRequest = this.SignRequest,

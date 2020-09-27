@@ -476,6 +476,10 @@ var app = new Vue({
                             <label class="form-check-label" for="requestParameters-requestType-refreshToken">OAuth 2.0 Refresh Token Grant</label>
                         </div>
                         <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-onBehalfOf" value="@Constants.RequestTypes.OnBehalfOf" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-onBehalfOf">OAuth 2.0 On-Behalf-Of Grant</label>
+                        </div>
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-resourceOwnerPasswordCredentials" value="@Constants.RequestTypes.ResourceOwnerPasswordCredentials" v-model="requestParameters.requestType">
                             <label class="form-check-label" for="requestParameters-requestType-resourceOwnerPasswordCredentials">OAuth 2.0 Resource Owner Password Credentials Grant</label>
                         </div>
@@ -603,6 +607,13 @@ var app = new Vue({
                             <div class="form-group">
                                 <label for="requestParameters-password">Password</label>
                                 <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" placeholder="Enter the password of the resource owner">
+                            </div>
+                        </div>
+
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OnBehalfOf'">
+                            <div class="form-group">
+                                <label for="requestParameters-userName">Assertion</label>
+                                <input type="text" class="form-control" id="requestParameters-assertion" v-model="requestParameters.assertion" placeholder="Enter the assertion, i.e. the access token on behalf of which to request a new token">
                             </div>
                         </div>
 

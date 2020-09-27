@@ -295,7 +295,7 @@ namespace Authr.WebApp.Controllers
 
                 // Decrypt the encrypted portion of the XML token.
                 new Saml2EncryptedXml(tokenXml, decryptionCertificate.GetSamlRSAPrivateKey()).DecryptDocument();
-                
+
                 // Return as an indented XML string.
                 using (var stringWriter = new StringWriter(new StringBuilder()))
                 {
@@ -630,6 +630,11 @@ namespace Authr.WebApp.Controllers
                         request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
                         flow.IsComplete = true;
                     }
+                    else if (requestParameters.RequestType == Constants.RequestTypes.OnBehalfOf)
+                    {
+                        request.Response = await HandleOnBehalfOfRequestAsync(requestParameters);
+                        flow.IsComplete = true;
+                    }
                     else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                     {
                         if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
@@ -778,6 +783,31 @@ namespace Authr.WebApp.Controllers
                 Password = requestParameters.Password,
                 Parameters = requestParameters.GetAdditionalParameters()
             });
+            return AuthResponse.FromTokenResponse(response);
+        }
+
+        private async Task<AuthResponse> HandleOnBehalfOfRequestAsync(AuthRequestParameters requestParameters)
+        {
+            // This implementation may be specific to Azure Active Directory.
+            // https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-on-behalf-of-flow
+            GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 On-Behalf-Of Grant.");
+            GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 On-Behalf-Of Grant.");
+            GuardNotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 On-Behalf-Of Grant.");
+            GuardNotEmpty(requestParameters.Scope, "The scope must be specified for an OAuth 2.0 On-Behalf-Of Grant.");
+            GuardNotEmpty(requestParameters.Assertion, "The assertion must be specified for an OAuth 2.0 On-Behalf-Of Grant.");
+            var client = this.httpClientFactory.CreateClient();
+            var request = new TokenRequest
+            {
+                Address = requestParameters.TokenEndpoint,
+                GrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer",
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Parameters = requestParameters.GetAdditionalParameters()
+            };
+            request.Parameters[OidcConstants.TokenRequest.Scope] = requestParameters.Scope;
+            request.Parameters[OidcConstants.TokenRequest.Assertion] = requestParameters.Assertion;
+            request.Parameters["requested_token_use"] = "on_behalf_of";
+            var response = await client.RequestTokenAsync(request);
             return AuthResponse.FromTokenResponse(response);
         }
 

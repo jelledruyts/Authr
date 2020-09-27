@@ -23,6 +23,7 @@ namespace Authr.WebApp
             public const string ResourceOwnerPasswordCredentials = nameof(ResourceOwnerPasswordCredentials);
             public const string DeviceCode = nameof(DeviceCode);
             public const string DeviceToken = nameof(DeviceToken);
+            public const string OnBehalfOf = nameof(OnBehalfOf);
             public const string Saml2AuthnRequest = nameof(Saml2AuthnRequest);
             public const string WsFederationSignIn = nameof(WsFederationSignIn);
         }
