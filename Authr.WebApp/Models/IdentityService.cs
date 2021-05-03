@@ -11,6 +11,7 @@ namespace Authr.WebApp.Models
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
         public string SamlSignOnEndpoint { get; set; }
+        public string SamlLogoutEndpoint { get; set; }
         public string WsFederationSignOnEndpoint { get; set; }
         public IList<ClientApplication> ClientApplications { get; set; } = new List<ClientApplication>();
 
@@ -31,6 +32,7 @@ namespace Authr.WebApp.Models
             this.TokenEndpoint = requestParameters.TokenEndpoint;
             this.DeviceCodeEndpoint = requestParameters.DeviceCodeEndpoint;
             this.SamlSignOnEndpoint = requestParameters.SamlSignOnEndpoint;
+            this.SamlLogoutEndpoint = requestParameters.SamlLogoutEndpoint;
             this.WsFederationSignOnEndpoint = requestParameters.WsFederationSignOnEndpoint;
         }
     }

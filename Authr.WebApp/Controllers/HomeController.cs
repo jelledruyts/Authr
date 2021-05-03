@@ -21,6 +21,7 @@ using ITfoxtec.Identity.Saml2.Cryptography;
 using ITfoxtec.Identity.Saml2.Schemas.Metadata;
 using ITfoxtec.Identity.Saml2.Schemas;
 using Microsoft.IdentityModel.Protocols.WsFederation;
+using Microsoft.IdentityModel.Tokens.Saml2;
 
 namespace Authr.WebApp.Controllers
 {
@@ -92,6 +93,19 @@ namespace Authr.WebApp.Controllers
                             Location = new Uri(GetAbsoluteRootUri())
                         },
                         new AssertionConsumerService
+                        {
+                            Binding = ProtocolBindings.HttpRedirect,
+                            Location = new Uri(GetAbsoluteRootUri())
+                        }
+                    },
+                    SingleLogoutServices = new[]
+                    {
+                        new SingleLogoutService
+                        {
+                            Binding = ProtocolBindings.HttpPost,
+                            Location = new Uri(GetAbsoluteRootUri())
+                        },
+                        new SingleLogoutService
                         {
                             Binding = ProtocolBindings.HttpRedirect,
                             Location = new Uri(GetAbsoluteRootUri())
@@ -197,6 +211,7 @@ namespace Authr.WebApp.Controllers
                     TokenEndpoint = $"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token",
                     DeviceCodeEndpoint = $"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/devicecode",
                     SamlSignOnEndpoint = $"https://login.microsoftonline.com/{tenant}/saml2",
+                    SamlLogoutEndpoint = $"https://login.microsoftonline.com/{tenant}/saml2",
                     WsFederationSignOnEndpoint = $"https://login.microsoftonline.com/{tenant}/wsfed"
                 };
             }
@@ -212,6 +227,7 @@ namespace Authr.WebApp.Controllers
                     TokenEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/token?p={policyId}",
                     DeviceCodeEndpoint = null, // Not supported by Azure AD B2C.
                     SamlSignOnEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/samlp/sso/login",
+                    SamlLogoutEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/samlp/sso/logout",
                     WsFederationSignOnEndpoint = null // Not supported by Azure AD B2C.
                 };
             }
@@ -255,6 +271,7 @@ namespace Authr.WebApp.Controllers
                             identityService.Name = federationMetadata.SelectSingleNode("saml:EntityDescriptor/@entityID", nsmgr)?.Value;
                         }
                         identityService.SamlSignOnEndpoint = federationMetadata.SelectSingleNode("/saml:EntityDescriptor/saml:IDPSSODescriptor/saml:SingleSignOnService[1]/@Location", nsmgr)?.Value;
+                        identityService.SamlLogoutEndpoint = federationMetadata.SelectSingleNode("/saml:EntityDescriptor/saml:IDPSSODescriptor/saml:SingleLogoutService[1]/@Location", nsmgr)?.Value;
                         identityService.WsFederationSignOnEndpoint = federationMetadata.SelectSingleNode("/saml:EntityDescriptor/saml:RoleDescriptor/fed:PassiveRequestorEndpoint/wsa:EndpointReference/wsa:Address/text()", nsmgr)?.Value;
                     }
                     return identityService;
@@ -637,13 +654,32 @@ namespace Authr.WebApp.Controllers
                     }
                     else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                     {
+                        var samlRequest = await GetSaml2AuthenticationRequestAsync(request);
                         if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
                         {
-                            model.RequestedPageContent = await GetSaml2RequestPostContent(request);
+                            var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
+                            model.RequestedPageContent = binding.PostContent;
                         }
                         else
                         {
-                            model.RequestedRedirectUrl = await GetSaml2RequestRedirectUrl(request);
+                            var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
+                            model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
+                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                        }
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                    }
+                    else if (requestParameters.RequestType == Constants.RequestTypes.Saml2LogoutRequest)
+                    {
+                        var samlRequest = await GetSaml2LogoutRequestAsync(request);
+                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        {
+                            var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
+                            model.RequestedPageContent = binding.PostContent;
+                        }
+                        else
+                        {
+                            var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
+                            model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
                             request.RequestedRedirectUrl = model.RequestedRedirectUrl;
                         }
                         await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
@@ -852,19 +888,7 @@ namespace Authr.WebApp.Controllers
             return AuthResponse.FromTokenResponse(response);
         }
 
-        private async Task<string> GetSaml2RequestRedirectUrl(AuthRequest request)
-        {
-            var binding = await GetSaml2Request<Saml2RedirectBinding>(request);
-            return binding.RedirectLocation.ToString();
-        }
-
-        private async Task<string> GetSaml2RequestPostContent(AuthRequest request)
-        {
-            var binding = await GetSaml2Request<Saml2PostBinding>(request);
-            return binding.PostContent;
-        }
-
-        private async Task<T> GetSaml2Request<T>(AuthRequest request) where T : Saml2Binding<T>, new()
+        private async Task<Saml2AuthnRequest> GetSaml2AuthenticationRequestAsync(AuthRequest request)
         {
             GuardNotEmpty(request.Parameters.SamlSignOnEndpoint, "The SAML sign-on endpoint must be specified for a SAML 2.0 Authentication Request.");
             GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for a SAML 2.0 Authentication Request.");
@@ -877,7 +901,7 @@ namespace Authr.WebApp.Controllers
             // samlConfiguration.SignatureAlgorithm = Saml2SecurityAlgorithms.RsaSha256Signature;
 
             // Set up the SAML authentication request.
-            var samlRequest = new Saml2AuthnRequest(samlConfiguration)
+            return new Saml2AuthnRequest(samlConfiguration)
             {
                 IdAsString = "_" + request.FlowId, // Set the request's "ID" parameter to the flow id so it can be correlated when the response comes back.
                 Destination = new Uri(request.Parameters.SamlSignOnEndpoint),
@@ -893,8 +917,30 @@ namespace Authr.WebApp.Controllers
                 //     SPNameQualifier = request.Parameters.SamlServiceProviderIdentifier
                 // }
             };
+        }
 
-            // Create the SAML binding.
+        private async Task<Saml2LogoutRequest> GetSaml2LogoutRequestAsync(AuthRequest request)
+        {
+            GuardNotEmpty(request.Parameters.SamlLogoutEndpoint, "The SAML logout endpoint must be specified for a SAML 2.0 Logout Request.");
+            GuardNotEmpty(request.Parameters.SamlServiceProviderIdentifier, "The SAML service provider identifier must be specified for a SAML 2.0 Logout Request.");
+            GuardNotEmpty(request.Parameters.NameId, "The SAML NameId must be specified for a SAML 2.0 Logout Request.");
+
+            // Set up the SAML configuration.
+            var samlConfiguration = await GetSamlConfigurationAsync();
+
+            // Set up the SAML logout request.
+            return new Saml2LogoutRequest(samlConfiguration)
+            {
+                IdAsString = "_" + request.FlowId, // Set the request's "ID" parameter to the flow id so it can be correlated when the response comes back.
+                Destination = new Uri(request.Parameters.SamlLogoutEndpoint),
+                Issuer = request.Parameters.SamlServiceProviderIdentifier,
+                NameId = new Saml2NameIdentifier(request.Parameters.NameId),
+                SessionIndex = request.Parameters.SessionIndex
+            };
+        }
+
+        private T GetSaml2Binding<T>(AuthRequest request, Saml2Request samlRequest) where T : Saml2Binding<T>, new()
+        {
             var binding = new T();
             binding.RelayState = StatePrefixFlow + request.FlowId;
             binding.Bind(samlRequest);

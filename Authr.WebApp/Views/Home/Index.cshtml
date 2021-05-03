@@ -155,6 +155,7 @@ var app = new Vue({
             to.tokenEndpoint = from.tokenEndpoint;
             to.deviceCodeEndpoint = from.deviceCodeEndpoint;
             to.samlSignOnEndpoint = from.samlSignOnEndpoint;
+            to.samlLogoutEndpoint = from.samlLogoutEndpoint;
             to.wsFederationSignOnEndpoint = from.wsFederationSignOnEndpoint;
         },
         validateParameters: function() {
@@ -496,6 +497,10 @@ var app = new Vue({
                             <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
                         </div>
                         <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2LogoutRequest" value="@Constants.RequestTypes.Saml2LogoutRequest" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-saml2LogoutRequest">SAML 2.0 Logout Request</label>
+                        </div>
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-wsFederationSignIn" value="@Constants.RequestTypes.WsFederationSignIn" v-model="requestParameters.requestType">
                             <label class="form-check-label" for="requestParameters-requestType-wsFederationSignIn">WS-Federation 1.2 Sign-In</label>
                         </div>
@@ -533,13 +538,17 @@ var app = new Vue({
                             <input type="text" class="form-control" id="requestParameters-samlSignOnEndpoint" v-model="requestParameters.samlSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML sign-on endpoint">
                         </div>
                         <div class="form-group">
+                            <label for="requestParameters-samlLogoutEndpoint">SAML Logout Endpoint</label>
+                            <input type="text" class="form-control" id="requestParameters-samlLogoutEndpoint" v-model="requestParameters.samlLogoutEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML logout endpoint">
+                        </div>
+                        <div class="form-group">
                             <label for="requestParameters-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-wsFederationSignOnEndpoint" v-model="requestParameters.wsFederationSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
                         </div>
                     </div>
                 </div>
 
-                <div id="clientApp-panel" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+                <div id="clientApp-panel" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                     <div class="card-header">Client App</div>
                     <div class="card-body">
                         <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
@@ -563,7 +572,7 @@ var app = new Vue({
                 <div id="requestParameters-panel" class="card mt-3">
                     <div class="card-header">Request Parameters</div>
                     <div class="card-body">
-                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                             <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
@@ -578,7 +587,7 @@ var app = new Vue({
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
                             </div>
                         </div>
-                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'  || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
                                 <label for="requestParameters-redirectUri">Redirect URI</label>
                                 <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
@@ -617,14 +626,28 @@ var app = new Vue({
                             </div>
                         </div>
 
-                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <div class="form-group">
                                 <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
                                 <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the application you want to sign in to">
                             </div>
+                        </div>
+
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
+                            <div class="form-group">
+                                <label for="requestParameters-nameId">Name ID</label>
+                                <input type="text" class="form-control" id="requestParameters-nameId" v-model="requestParameters.nameId" placeholder="Enter the Name ID of the principal that needs to be logged out">
+                            </div>
+                            <div class="form-group">
+                                <label for="requestParameters-nameId">Session Index</label>
+                                <input type="text" class="form-control" id="requestParameters-sessionIndex" v-model="requestParameters.sessionIndex" placeholder="Enter the session identifier that needs to be logged out">
+                            </div>
+                        </div>
+
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' ">
                             <div class="form-group">
                                 <input type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
-                                <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Authentication Request</label>
+                                <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Request</label>
                             </div>
                         </div>
 
@@ -635,7 +658,7 @@ var app = new Vue({
                             </div>
                         </div>
                         
-                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
                                 <div class="form-check form-check-inline">Request Binding:</div>
                                 <div class="form-check form-check-inline">
@@ -649,7 +672,7 @@ var app = new Vue({
                             </div>
                         </div>
 
-                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest'">
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <label for="requestParameters-additionalParameters">Additional Parameters</label>
                             <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
                         </div>
@@ -762,6 +785,22 @@ var app = new Vue({
                         </div>
                     </div>
                     <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
+                </div>
+
+                <div v-if="response.samlRequest">
+                    <h5 class="mt-3">SAML Request</h5>
+                    <div class="input-group mt-2">
+                        <input type="text" class="form-control text-monospace" id="response-samlRequest" v-model="response.samlRequest" readonly>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="far fa-share-square"></i></button>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <pre><code>{{ decodeToken(response.samlRequest) | token }}</code></pre>
+                        </div>
+                    </div>
                 </div>
 
                 <div v-if="response.samlResponse">
@@ -974,6 +1013,10 @@ var app = new Vue({
                                 <div class="form-group">
                                     <label for="userConfigurationEdit-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.samlSignOnEndpoint" placeholder="Enter the URL of the SAML sign-on endpoint">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userConfigurationEdit-samlLogoutEndpoint">SAML Logout Endpoint</label>
+                                    <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlLogoutEndpoint-' +  identityServiceIndex" v-model="identityService.samlLogoutEndpoint" placeholder="Enter the URL of the SAML logout endpoint">
                                 </div>
                                 <div class="form-group">
                                     <label for="userConfigurationEdit-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>

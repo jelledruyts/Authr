@@ -40,6 +40,10 @@ namespace Authr.WebApp.Models
         [JsonPropertyName(OidcConstants.AuthorizeResponse.RefreshToken)]
         public string RefreshToken { get; set; }
 
+        [BindProperty(Name = Saml2Constants.Message.SamlRequest)]
+        [JsonPropertyName(Saml2Constants.Message.SamlRequest)]
+        public string SamlRequest { get; set; }
+
         [BindProperty(Name = Saml2Constants.Message.SamlResponse)]
         [JsonPropertyName(Saml2Constants.Message.SamlResponse)]
         public string SamlResponse { get; set; }
@@ -63,7 +67,7 @@ namespace Authr.WebApp.Models
         public bool IsEmpty()
         {
             // Check if any of the relevant properties are set, excluding State, RelayState and Wctx (as just state without anything else is useless).
-            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken + this.SamlResponse + this.Wa + this.Wresult);
+            return string.IsNullOrWhiteSpace(this.Error + this.ErrorDescription + this.AuthorizationCode + this.IdToken + this.AccessToken + this.TokenType + this.RefreshToken + this.SamlRequest + this.SamlResponse + this.Wa + this.Wresult);
         }
     }
 }

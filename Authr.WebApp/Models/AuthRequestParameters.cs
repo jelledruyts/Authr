@@ -13,6 +13,7 @@ namespace Authr.WebApp.Models
         public string TokenEndpoint { get; set; }
         public string DeviceCodeEndpoint { get; set; }
         public string SamlSignOnEndpoint { get; set; }
+        public string SamlLogoutEndpoint { get; set; }
         public string WsFederationSignOnEndpoint { get; set; }
         public string ClientId { get; set; }
         public string ClientSecret { get; set; }
@@ -29,6 +30,8 @@ namespace Authr.WebApp.Models
         public string SamlServiceProviderIdentifier { get; set; }
         public string WsFederationRealmIdentifier { get; set; }
         public bool SignRequest { get; set; }
+        public string NameId { get; set; }
+        public string SessionIndex { get; set; }
         public string RequestMethod { get; set; }
         public string AdditionalParameters { get; set; }
 
@@ -43,6 +46,7 @@ namespace Authr.WebApp.Models
                 TokenEndpoint = this.TokenEndpoint,
                 DeviceCodeEndpoint = this.DeviceCodeEndpoint,
                 SamlSignOnEndpoint = this.SamlSignOnEndpoint,
+                SamlLogoutEndpoint = this.SamlLogoutEndpoint,
                 WsFederationSignOnEndpoint = this.WsFederationSignOnEndpoint,
                 ClientId = this.ClientId,
                 ClientSecret = this.ClientSecret,
@@ -59,6 +63,8 @@ namespace Authr.WebApp.Models
                 SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
                 WsFederationRealmIdentifier = this.WsFederationRealmIdentifier,
                 SignRequest = this.SignRequest,
+                NameId = this.NameId,
+                SessionIndex = this.SessionIndex,
                 RequestMethod = this.RequestMethod,
                 AdditionalParameters = this.AdditionalParameters
             };

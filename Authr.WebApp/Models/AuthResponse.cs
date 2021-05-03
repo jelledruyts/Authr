@@ -16,6 +16,7 @@ namespace Authr.WebApp.Models
         public string DeviceCode { get; set; }
         public string DeviceUserCode { get; set; }
         public string DeviceCodeVerificationUri { get; set; }
+        public string SamlRequest { get; set; }
         public string SamlResponse { get; set; }
         public string WsFederationResponse { get; set; }
         public string Raw { get; set; }
@@ -49,6 +50,7 @@ namespace Authr.WebApp.Models
                 AccessToken = value.AccessToken,
                 RefreshToken = value.RefreshToken,
                 AuthorizationCode = value.AuthorizationCode,
+                SamlRequest = value.SamlRequest,
                 SamlResponse = value.SamlResponse,
                 WsFederationResponse = value.Wresult
             };
