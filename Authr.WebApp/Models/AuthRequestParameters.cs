@@ -32,6 +32,8 @@ namespace Authr.WebApp.Models
         public bool SignRequest { get; set; }
         public string NameId { get; set; }
         public string SessionIndex { get; set; }
+        public bool ForceAuthentication { get; set; }
+        public bool SilentAuthentication { get; set; }
         public string RequestMethod { get; set; }
         public string AdditionalParameters { get; set; }
 
@@ -65,6 +67,8 @@ namespace Authr.WebApp.Models
                 SignRequest = this.SignRequest,
                 NameId = this.NameId,
                 SessionIndex = this.SessionIndex,
+                ForceAuthentication = this.ForceAuthentication,
+                SilentAuthentication = this.SilentAuthentication,
                 RequestMethod = this.RequestMethod,
                 AdditionalParameters = this.AdditionalParameters
             };

@@ -907,9 +907,9 @@ namespace Authr.WebApp.Controllers
                 Destination = new Uri(request.Parameters.SamlSignOnEndpoint),
                 AssertionConsumerServiceUrl = new Uri(request.Parameters.RedirectUri),
                 Issuer = request.Parameters.SamlServiceProviderIdentifier,
+                ForceAuthn = request.Parameters.ForceAuthentication,
+                IsPassive = request.Parameters.SilentAuthentication
                 // Additional optional parameters that could be supported in the future:
-                // IsPassive = false,
-                // ForceAuthn = false,
                 // NameIdPolicy = new NameIdPolicy
                 // {
                 //     AllowCreate = true,

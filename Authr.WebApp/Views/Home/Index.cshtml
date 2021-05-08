@@ -633,13 +633,24 @@ var app = new Vue({
                             </div>
                         </div>
 
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+                            <div class="form-group">
+                                <input type="checkbox" id="requestParameters-forceAuthentication" v-model="requestParameters.forceAuthentication">
+                                <label class="form-check-label ml-1" for="requestParameters-forceAuthentication">Force Authentication</label>
+                            </div>
+                            <div class="form-group">
+                                <input type="checkbox" id="requestParameters-silentAuthentication" v-model="requestParameters.silentAuthentication">
+                                <label class="form-check-label ml-1" for="requestParameters-silentAuthentication">Is Passive</label>
+                            </div>
+                        </div>
+
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <div class="form-group">
                                 <label for="requestParameters-nameId">Name ID</label>
                                 <input type="text" class="form-control" id="requestParameters-nameId" v-model="requestParameters.nameId" placeholder="Enter the Name ID of the principal that needs to be logged out">
                             </div>
                             <div class="form-group">
-                                <label for="requestParameters-nameId">Session Index</label>
+                                <label for="requestParameters-sessionIndex">Session Index</label>
                                 <input type="text" class="form-control" id="requestParameters-sessionIndex" v-model="requestParameters.sessionIndex" placeholder="Enter the session identifier that needs to be logged out">
                             </div>
                         </div>
