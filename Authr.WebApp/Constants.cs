@@ -47,5 +47,10 @@ namespace Authr.WebApp
             public const string AzureAD = nameof(AzureAD);
             public const string AzureADB2C = nameof(AzureADB2C);
         }
+
+        public static class RequestActions
+        {
+            public const string PerformRequest = nameof(PerformRequest);
+        }
     }
 }

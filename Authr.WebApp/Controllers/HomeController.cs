@@ -550,7 +550,7 @@ namespace Authr.WebApp.Controllers
                         }
                         else
                         {
-                            var authorizationCodeRequestParameters = originalRequest.Parameters.Clone();
+                            var authorizationCodeRequestParameters = new AuthRequestParameters(originalRequest.Parameters);
                             authorizationCodeRequestParameters.RequestType = Constants.RequestTypes.AuthorizationCode;
                             authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
                             var authorizationCodeRequest = flow.AddRequest(authorizationCodeRequestParameters);
@@ -578,142 +578,160 @@ namespace Authr.WebApp.Controllers
                     {
                         requestParameters.RedirectUri = GetAbsoluteRootUri();
                     }
-
-                    // Look up an existing flow if possible.
-                    var flowReferenceToRemoveFromCacheWhenComplete = default(string);
-                    var flow = default(AuthFlow);
-                    if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken && !string.IsNullOrWhiteSpace(requestParameters.DeviceCode))
+                    // Import Identity Service if requested.
+                    if (!string.IsNullOrWhiteSpace(requestParameters.ImportType))
                     {
-                        flow = await this.authFlowCacheProvider.GetAuthFlowAsync(requestParameters.DeviceCode);
-                        flowReferenceToRemoveFromCacheWhenComplete = (flow == null ? null : requestParameters.DeviceCode);
-                    }
-                    if (flow == null)
-                    {
-                        flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
-                        this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
-                    }
-                    model.Flow = flow;
-                    model.RequestParameters = requestParameters;
-                    var request = flow.AddRequest(requestParameters);
-                    this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } });
-
-                    // Determine which flow to execute.
-                    if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
-                    {
-                        model.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
-                        request.RequestedRedirectUrl = model.RequestedRedirectUrl;
-                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
-                    {
-                        request.Response = await HandleClientCredentialsRequestAsync(requestParameters);
-                        flow.IsComplete = true;
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
-                    {
-                        request.Response = await HandleRefreshTokenRequestAsync(requestParameters);
-                        flow.IsComplete = true;
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
-                    {
-                        request.Response = await HandleDeviceCodeRequestAsync(requestParameters);
-                        if (string.IsNullOrWhiteSpace(request.Response.DeviceCode))
+                        var identityService = await SubmitIdentityServiceImportRequest(requestParameters);
+                        if (identityService != null)
                         {
+                            requestParameters.AuthorizationEndpoint = identityService.AuthorizationEndpoint;
+                            requestParameters.TokenEndpoint = identityService.TokenEndpoint;
+                            requestParameters.DeviceCodeEndpoint = identityService.DeviceCodeEndpoint;
+                            requestParameters.SamlSignOnEndpoint = identityService.SamlSignOnEndpoint;
+                            requestParameters.SamlLogoutEndpoint = identityService.SamlLogoutEndpoint;
+                            requestParameters.WsFederationSignOnEndpoint = identityService.WsFederationSignOnEndpoint;
+                        }
+                    }
+
+                    if (string.Equals(Request.Method, HttpMethod.Post.Method, StringComparison.InvariantCultureIgnoreCase)
+                        || string.Equals(requestParameters.RequestAction, Constants.RequestActions.PerformRequest, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        // Look up an existing flow if possible.
+                        var flowReferenceToRemoveFromCacheWhenComplete = default(string);
+                        var flow = default(AuthFlow);
+                        if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken && !string.IsNullOrWhiteSpace(requestParameters.DeviceCode))
+                        {
+                            flow = await this.authFlowCacheProvider.GetAuthFlowAsync(requestParameters.DeviceCode);
+                            flowReferenceToRemoveFromCacheWhenComplete = (flow == null ? null : requestParameters.DeviceCode);
+                        }
+                        if (flow == null)
+                        {
+                            flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
+                            this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
+                        }
+                        model.Flow = flow;
+                        model.RequestParameters = requestParameters;
+                        var request = flow.AddRequest(requestParameters);
+                        this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } });
+
+                        // Determine which flow to execute.
+                        if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
+                        {
+                            model.RequestedRedirectUrl = GetAuthorizationEndpointRequestUrl(request);
+                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                        }
+                        else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
+                        {
+                            request.Response = await HandleClientCredentialsRequestAsync(requestParameters);
                             flow.IsComplete = true;
                         }
-                        else
+                        else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
                         {
-                            // This is just the first part of the flow, the device token still has to be requested.
-                            // Keep the flow in cache until the device code is exchanged for the token.
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(request.Response.DeviceCode, flow);
-                            flow.IsComplete = false;
-                        }
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
-                    {
-                        request.Response = await HandleDeviceTokenRequestAsync(requestParameters);
-                        if (string.IsNullOrWhiteSpace(request.Response.Error))
-                        {
+                            request.Response = await HandleRefreshTokenRequestAsync(requestParameters);
                             flow.IsComplete = true;
                         }
-                        else
+                        else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
                         {
-                            // An error occurred so the flow is not complete yet, save changes.
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(requestParameters.DeviceCode, flow);
+                            request.Response = await HandleDeviceCodeRequestAsync(requestParameters);
+                            if (string.IsNullOrWhiteSpace(request.Response.DeviceCode))
+                            {
+                                flow.IsComplete = true;
+                            }
+                            else
+                            {
+                                // This is just the first part of the flow, the device token still has to be requested.
+                                // Keep the flow in cache until the device code is exchanged for the token.
+                                await this.authFlowCacheProvider.SetAuthFlowAsync(request.Response.DeviceCode, flow);
+                                flow.IsComplete = false;
+                            }
                         }
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
-                    {
-                        request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
-                        flow.IsComplete = true;
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.OnBehalfOf)
-                    {
-                        request.Response = await HandleOnBehalfOfRequestAsync(requestParameters);
-                        flow.IsComplete = true;
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
-                    {
-                        var samlRequest = await GetSaml2AuthenticationRequestAsync(request);
-                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
                         {
-                            var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
-                            model.RequestedPageContent = binding.PostContent;
+                            request.Response = await HandleDeviceTokenRequestAsync(requestParameters);
+                            if (string.IsNullOrWhiteSpace(request.Response.Error))
+                            {
+                                flow.IsComplete = true;
+                            }
+                            else
+                            {
+                                // An error occurred so the flow is not complete yet, save changes.
+                                await this.authFlowCacheProvider.SetAuthFlowAsync(requestParameters.DeviceCode, flow);
+                            }
                         }
-                        else
+                        else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
                         {
-                            var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
-                            model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
-                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            request.Response = await HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
+                            flow.IsComplete = true;
                         }
-                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.Saml2LogoutRequest)
-                    {
-                        var samlRequest = await GetSaml2LogoutRequestAsync(request);
-                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        else if (requestParameters.RequestType == Constants.RequestTypes.OnBehalfOf)
                         {
-                            var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
-                            model.RequestedPageContent = binding.PostContent;
+                            request.Response = await HandleOnBehalfOfRequestAsync(requestParameters);
+                            flow.IsComplete = true;
                         }
-                        else
+                        else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                         {
-                            var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
-                            model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
-                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            var samlRequest = await GetSaml2AuthenticationRequestAsync(request);
+                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                            {
+                                var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
+                                model.RequestedPageContent = binding.PostContent;
+                            }
+                            else
+                            {
+                                var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
+                                model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
+                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            }
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
                         }
-                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                    }
-                    else if (requestParameters.RequestType == Constants.RequestTypes.WsFederationSignIn)
-                    {
-                        if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                        else if (requestParameters.RequestType == Constants.RequestTypes.Saml2LogoutRequest)
                         {
-                            model.RequestedPageContent = GetWsFederationSignInPostContent(request);
+                            var samlRequest = await GetSaml2LogoutRequestAsync(request);
+                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                            {
+                                var binding = GetSaml2Binding<Saml2PostBinding>(request, samlRequest);
+                                model.RequestedPageContent = binding.PostContent;
+                            }
+                            else
+                            {
+                                var binding = GetSaml2Binding<Saml2RedirectBinding>(request, samlRequest);
+                                model.RequestedRedirectUrl = binding.RedirectLocation.ToString();
+                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            }
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
                         }
-                        else
+                        else if (requestParameters.RequestType == Constants.RequestTypes.WsFederationSignIn)
                         {
-                            model.RequestedRedirectUrl = GetWsFederationSignInRedirectUrl(request);
-                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                            {
+                                model.RequestedPageContent = GetWsFederationSignInPostContent(request);
+                            }
+                            else
+                            {
+                                model.RequestedRedirectUrl = GetWsFederationSignInRedirectUrl(request);
+                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                            }
+                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
                         }
-                        await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                    }
 
-                    if (request.Response != null)
-                    {
-                        this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (request.Response.TimeCreated - request.TimeCreated).TotalMilliseconds } });
-                    }
-                    if (flow.IsComplete)
-                    {
-                        flow.TimeCompleted = DateTimeOffset.UtcNow;
-                        this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
-                        if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
+                        if (request.Response != null)
                         {
-                            await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
+                            this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (request.Response.TimeCreated - request.TimeCreated).TotalMilliseconds } });
                         }
-                    }
+                        if (flow.IsComplete)
+                        {
+                            flow.TimeCompleted = DateTimeOffset.UtcNow;
+                            this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
+                            if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
+                            {
+                                await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
+                            }
+                        }
 
-                    // Set the response to the last relevant response received.
-                    model.Response = flow.Requests.Last().Response;
+                        // Set the response to the last relevant response received.
+                        model.Response = flow.Requests.Last().Response;
+                    }
                 }
             }
             catch (Exception exc)

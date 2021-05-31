@@ -5,7 +5,9 @@ using Microsoft.AspNetCore.WebUtilities;
 namespace Authr.WebApp.Models
 {
     public class AuthRequestParameters
+        : IdentityServiceImportRequestParameters // Allows requests to trigger an import of an Identity Service
     {
+        public string RequestAction { get; set; }
         public string RequestType { get; set; }
         public string IdentityServiceId { get; set; }
         public string ClientApplicationId { get; set; }
@@ -37,41 +39,44 @@ namespace Authr.WebApp.Models
         public string RequestMethod { get; set; }
         public string AdditionalParameters { get; set; }
 
-        public AuthRequestParameters Clone()
+        public AuthRequestParameters()
         {
-            return new AuthRequestParameters
-            {
-                RequestType = this.RequestType,
-                IdentityServiceId = this.IdentityServiceId,
-                ClientApplicationId = this.ClientApplicationId,
-                AuthorizationEndpoint = this.AuthorizationEndpoint,
-                TokenEndpoint = this.TokenEndpoint,
-                DeviceCodeEndpoint = this.DeviceCodeEndpoint,
-                SamlSignOnEndpoint = this.SamlSignOnEndpoint,
-                SamlLogoutEndpoint = this.SamlLogoutEndpoint,
-                WsFederationSignOnEndpoint = this.WsFederationSignOnEndpoint,
-                ClientId = this.ClientId,
-                ClientSecret = this.ClientSecret,
-                Scope = this.Scope,
-                ResponseType = this.ResponseType,
-                RedirectUri = this.RedirectUri,
-                ResponseMode = this.ResponseMode,
-                UserName = this.UserName,
-                Password = this.Password,
-                AuthorizationCode = this.AuthorizationCode,
-                RefreshToken = this.RefreshToken,
-                DeviceCode = this.DeviceCode,
-                Assertion = this.Assertion,
-                SamlServiceProviderIdentifier = this.SamlServiceProviderIdentifier,
-                WsFederationRealmIdentifier = this.WsFederationRealmIdentifier,
-                SignRequest = this.SignRequest,
-                NameId = this.NameId,
-                SessionIndex = this.SessionIndex,
-                ForceAuthentication = this.ForceAuthentication,
-                SilentAuthentication = this.SilentAuthentication,
-                RequestMethod = this.RequestMethod,
-                AdditionalParameters = this.AdditionalParameters
-            };
+        }
+
+        public AuthRequestParameters(AuthRequestParameters value)
+            : base(value)
+        {
+            this.RequestAction = value.RequestAction;
+            this.RequestType = value.RequestType;
+            this.IdentityServiceId = value.IdentityServiceId;
+            this.ClientApplicationId = value.ClientApplicationId;
+            this.AuthorizationEndpoint = value.AuthorizationEndpoint;
+            this.TokenEndpoint = value.TokenEndpoint;
+            this.DeviceCodeEndpoint = value.DeviceCodeEndpoint;
+            this.SamlSignOnEndpoint = value.SamlSignOnEndpoint;
+            this.SamlLogoutEndpoint = value.SamlLogoutEndpoint;
+            this.WsFederationSignOnEndpoint = value.WsFederationSignOnEndpoint;
+            this.ClientId = value.ClientId;
+            this.ClientSecret = value.ClientSecret;
+            this.Scope = value.Scope;
+            this.ResponseType = value.ResponseType;
+            this.RedirectUri = value.RedirectUri;
+            this.ResponseMode = value.ResponseMode;
+            this.UserName = value.UserName;
+            this.Password = value.Password;
+            this.AuthorizationCode = value.AuthorizationCode;
+            this.RefreshToken = value.RefreshToken;
+            this.DeviceCode = value.DeviceCode;
+            this.Assertion = value.Assertion;
+            this.SamlServiceProviderIdentifier = value.SamlServiceProviderIdentifier;
+            this.WsFederationRealmIdentifier = value.WsFederationRealmIdentifier;
+            this.SignRequest = value.SignRequest;
+            this.NameId = value.NameId;
+            this.SessionIndex = value.SessionIndex;
+            this.ForceAuthentication = value.ForceAuthentication;
+            this.SilentAuthentication = value.SilentAuthentication;
+            this.RequestMethod = value.RequestMethod;
+            this.AdditionalParameters = value.AdditionalParameters;
         }
 
         public IDictionary<string, string> GetAdditionalParameters()
