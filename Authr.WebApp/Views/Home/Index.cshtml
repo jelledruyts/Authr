@@ -593,6 +593,12 @@ var app = new Vue({
                                 <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
                             </div>
                         </div>
+                        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
+                            <div class="form-group">
+                                <input type="checkbox" id="requestParameters-usePkce" v-model="requestParameters.usePkce">
+                                <label class="form-check-label ml-1" for="requestParameters-usePkce">Use Proof Key for Code Exchange (PKCE)</label>
+                            </div>
+                        </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
                             <div class="form-group">

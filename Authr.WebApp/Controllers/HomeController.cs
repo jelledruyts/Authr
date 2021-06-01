@@ -555,7 +555,7 @@ namespace Authr.WebApp.Controllers
                             authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
                             var authorizationCodeRequest = flow.AddRequest(authorizationCodeRequestParameters);
                             this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } });
-                            var authorizationCodeResponse = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters);
+                            var authorizationCodeResponse = await HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters, originalRequest.CodeVerifier);
                             authorizationCodeRequest.Response = authorizationCodeResponse;
                             this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (authorizationCodeRequest.Response.TimeCreated - authorizationCodeRequest.TimeCreated).TotalMilliseconds } });
                         }
@@ -858,9 +858,9 @@ namespace Authr.WebApp.Controllers
                 ClientSecret = requestParameters.ClientSecret,
                 Parameters = requestParameters.GetAdditionalParameters()
             };
-            request.Parameters[OidcConstants.TokenRequest.Scope] = requestParameters.Scope;
-            request.Parameters[OidcConstants.TokenRequest.Assertion] = requestParameters.Assertion;
-            request.Parameters["requested_token_use"] = "on_behalf_of";
+            request.Parameters.Add(OidcConstants.TokenRequest.Scope, requestParameters.Scope);
+            request.Parameters.Add(OidcConstants.TokenRequest.Assertion, requestParameters.Assertion);
+            request.Parameters.Add("requested_token_use", "on_behalf_of");
             var response = await client.RequestTokenAsync(request);
             return AuthResponse.FromTokenResponse(response);
         }
@@ -870,6 +870,18 @@ namespace Authr.WebApp.Controllers
             GuardNotEmpty(request.Parameters.AuthorizationEndpoint, "The authorization endpoint must be specified for an authorization endpoint request.");
             GuardNotEmpty(request.Parameters.ClientId, "The client id must be specified for an authorization endpoint request.");
             GuardNotEmpty(request.Parameters.RedirectUri, "The redirect uri must be specified for an authorization endpoint request.");
+
+            var codeChallenge = default(string);
+            var codeChallengeMethod = default(string);
+            if (request.Parameters.UsePkce && (request.Parameters.RequestType == Constants.RequestTypes.OpenIdConnect || request.Parameters.RequestType == Constants.RequestTypes.AuthorizationCode))
+            {
+                // Use PKCE and store the code verifier as part of the request so that it can be
+                // retrieved later on when redeeming the authorization code.
+                request.CodeVerifier = CryptoRandom.CreateUniqueId(64);
+                codeChallenge = request.CodeVerifier.ToSha256().TrimEnd('=').Replace('+', '-').Replace('/', '_'); // https://stackoverflow.com/questions/58687154/identityserver4-pkce-error-transformed-code-verifier-does-not-match-code-chall
+                codeChallengeMethod = OidcConstants.CodeChallengeMethods.Sha256;
+            }
+
             var urlBuilder = new RequestUrl(request.Parameters.AuthorizationEndpoint);
             return urlBuilder.CreateAuthorizeUrl(
                 clientId: request.Parameters.ClientId,
@@ -878,12 +890,14 @@ namespace Authr.WebApp.Controllers
                 redirectUri: request.Parameters.RedirectUri,
                 responseMode: request.Parameters.ResponseMode,
                 nonce: request.Nonce,
+                codeChallenge: codeChallenge,
+                codeChallengeMethod: codeChallengeMethod,
                 state: StatePrefixFlow + request.FlowId, // Set the request's "state" parameter to the flow id so it can be correlated when the response comes back.
                 extra: request.Parameters.GetAdditionalParameters()
             );
         }
 
-        private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequestParameters requestParameters)
+        private async Task<AuthResponse> HandleAuthorizationCodeResponseAsync(AuthRequestParameters requestParameters, string codeVerifier)
         {
             GuardNotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Authorization Code Grant.");
             GuardNotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Authorization Code Grant.");
@@ -901,6 +915,7 @@ namespace Authr.WebApp.Controllers
                 ClientSecret = requestParameters.ClientSecret,
                 Code = requestParameters.AuthorizationCode,
                 RedirectUri = requestParameters.RedirectUri,
+                CodeVerifier = codeVerifier,
                 Parameters = requestParameters.GetAdditionalParameters()
             });
             return AuthResponse.FromTokenResponse(response);

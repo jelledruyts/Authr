@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using IdentityModel.Client;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Authr.WebApp.Models
@@ -37,6 +38,7 @@ namespace Authr.WebApp.Models
         public bool ForceAuthentication { get; set; }
         public bool SilentAuthentication { get; set; }
         public string RequestMethod { get; set; }
+        public bool UsePkce { get; set; }
         public string AdditionalParameters { get; set; }
 
         public AuthRequestParameters()
@@ -76,13 +78,14 @@ namespace Authr.WebApp.Models
             this.ForceAuthentication = value.ForceAuthentication;
             this.SilentAuthentication = value.SilentAuthentication;
             this.RequestMethod = value.RequestMethod;
+            this.UsePkce = value.UsePkce;
             this.AdditionalParameters = value.AdditionalParameters;
         }
 
-        public IDictionary<string, string> GetAdditionalParameters()
+        public Parameters GetAdditionalParameters()
         {
             // The additional parameters string should be formed like a query string, i.e. "key1=value1&key2=value2...".
-            var parameters = new Dictionary<string, string>();
+            var parameters = new Parameters();
             var parsedParameters = QueryHelpers.ParseNullableQuery(this.AdditionalParameters);
             if (parsedParameters != null)
             {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using IdentityModel;
 
 namespace Authr.WebApp.Models
 {
@@ -18,7 +19,7 @@ namespace Authr.WebApp.Models
             var request = new AuthRequest()
             {
                 Parameters = parameters,
-                Nonce = Guid.NewGuid().ToString(),
+                Nonce = CryptoRandom.CreateUniqueId(32),
                 FlowId = this.Id,
                 IsInitiatedExternally = false
             };

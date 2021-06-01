@@ -9,6 +9,7 @@ namespace Authr.WebApp.Models
         public string FlowId { get; set; }
         public string RequestedRedirectUrl { get; set; }
         public string RequestMessage { get; set; }
+        public string CodeVerifier { get; set; }
         public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
         public bool IsInitiatedExternally { get; set; }
         public AuthResponse Response { get; set; }
