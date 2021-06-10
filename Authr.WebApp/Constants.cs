@@ -51,6 +51,7 @@ namespace Authr.WebApp
         public static class RequestActions
         {
             public const string PerformRequest = nameof(PerformRequest);
+            public const string GenerateLink = nameof(GenerateLink);
         }
     }
 }

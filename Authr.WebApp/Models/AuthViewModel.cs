@@ -8,5 +8,6 @@ namespace Authr.WebApp.Models
         public AuthResponse Response { get; set; }
         public AuthFlow Flow { get; set; }
         public UserConfiguration UserConfiguration { get; set; }
+        public string GeneratedLink { get; set; }
     }
 }

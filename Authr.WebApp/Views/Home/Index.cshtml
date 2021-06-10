@@ -13,6 +13,7 @@ var app = new Vue({
             flow: null,
             userConfiguration: null,
             userConfigurationEdit: null,
+            generatedLink: null,
             requestOptions: {
                 saveIdentityService: false,
                 saveIdentityServiceAsName: null,
@@ -195,11 +196,12 @@ var app = new Vue({
             this.requestParameters.refreshToken = refreshToken;
             this.showTab('mainTabHeaderRequest');
         },
-        submitRequest: function() {
+        submitRequest: function(requestAction) {
             var requestValue = {
                 requestParameters: this.requestParameters,
                 options: this.requestOptions
             };
+            requestValue.requestParameters.requestAction = requestAction;
             this.submit('request', requestValue);
         },
         submitResponse: function(response) {
@@ -224,6 +226,7 @@ var app = new Vue({
                     that.requestOptions.saveIdentityService = false;
                     that.requestOptions.saveClientApplication = false;
                     that.requestOptions.saveRequestTemplate = false;
+                    that.generatedLink = response.data.generatedLink;
                     if (response.data.requestedRedirectUrl) {
                         window.location.replace(response.data.requestedRedirectUrl);
                     } else if (response.data.requestedPageContent) {
@@ -330,6 +333,7 @@ var app = new Vue({
         this.response = @Html.Raw(Json.Serialize(Model.Response));
         this.flow = @Html.Raw(Json.Serialize(Model.Flow));
         this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
+        this.generatedLink = @Html.Raw(Json.Serialize(Model.GeneratedLink));
         if (location.hash && location.hash.length > 1) {
             if (location.hash === '#request') {
                 this.showTab('mainTabHeaderRequest');
@@ -414,6 +418,15 @@ var app = new Vue({
                         <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureAD'">
                             <label for="identityServiceImportRequestParameters-tenant">Azure AD Tenant</label>
                             <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Azure AD tenant">
+                            <div class="mt-3 small text-muted">
+                                <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant Azure AD application:
+                                <div class="input-group input-group-sm mt-2">
+                                    <input type="text" class="form-control text-monospace" id="clientid-aad-mt" value="fb859816-0967-41eb-a59f-6a525d3fda8e" readonly>
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
                             <label for="identityServiceImportRequestParameters-tenant">Azure AD B2C Tenant</label>
@@ -740,6 +753,13 @@ var app = new Vue({
 
                 <div v-if="errorMessage" class="mt-2">
                     <div class="alert alert-danger">{{ errorMessage }}</div>
+                </div>
+
+                <div class="form-group form-inline mt-3">
+                    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="form-control btn btn-sm btn-outline-secondary" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="fas fa-link"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                    <span class="text-muted text-small ml-2" v-if="generatedLink">
+                        Use <a v-bind:href="generatedLink">this link</a> to pre-populate @Constants.App.Name with the values above.
+                    </span>
                 </div>
 
             </div>

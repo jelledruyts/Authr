@@ -593,7 +593,13 @@ namespace Authr.WebApp.Controllers
                         }
                     }
 
-                    if (string.Equals(Request.Method, HttpMethod.Post.Method, StringComparison.InvariantCultureIgnoreCase)
+                    if (string.Equals(requestParameters.RequestAction, Constants.RequestActions.GenerateLink, StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        var clone = new AuthRequestParameters(requestParameters);
+                        clone.RequestAction = null; // Don't generate a link with the "generate a link" request action.
+                        model.GeneratedLink = Url.Action(nameof(Index), clone);
+                    }
+                    else if (string.Equals(Request.Method, HttpMethod.Post.Method, StringComparison.InvariantCultureIgnoreCase)
                         || string.Equals(requestParameters.RequestAction, Constants.RequestActions.PerformRequest, StringComparison.InvariantCultureIgnoreCase))
                     {
                         // Look up an existing flow if possible.
@@ -742,12 +748,15 @@ namespace Authr.WebApp.Controllers
             {
                 // Create new request parameters and set sensible defaults if not provided.
                 model.RequestParameters = requestParameters ?? new AuthRequestParameters();
-                model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
-                model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
-                model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
-                model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
-                model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetAbsoluteRootUri();
-                model.RequestParameters.RequestMethod = model.RequestParameters.RequestMethod ?? Constants.RequestMethods.HttpRedirect;
+                if (string.IsNullOrWhiteSpace(model.RequestParameters.RequestType))
+                {
+                    model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
+                    model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? OidcConstants.ResponseTypes.IdToken;
+                    model.RequestParameters.Scope = model.RequestParameters.Scope ?? OidcConstants.StandardScopes.OpenId;
+                    model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? OidcConstants.ResponseModes.FormPost;
+                    model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? GetAbsoluteRootUri();
+                    model.RequestParameters.RequestMethod = model.RequestParameters.RequestMethod ?? Constants.RequestMethods.HttpRedirect;
+                }
             }
             return model;
         }
