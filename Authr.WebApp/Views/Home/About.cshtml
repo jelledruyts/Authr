@@ -36,6 +36,7 @@
         <input type="text" class="form-control text-monospace" id="metadata-saml2" value="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" readonly>
         <div class="input-group-append">
             <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+            <a href="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" class="btn btn-outline-secondary" title="Browse to the SAML 2.0 Metadata"><i class="far fa-share-square"></i></a>
         </div>
     </div>
 </div>
