@@ -2,6 +2,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Authr.WebApp.Handlers;
 using Authr.WebApp.Services;
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
@@ -123,6 +124,14 @@ namespace Authr.WebApp
             {
                 services.AddSingleton<IAuthFlowCacheProvider>(new AzureStorageAuthFlowCacheProvider(authFlowCacheConnectionString));
             }
+            services.AddScoped<AbsoluteUrlProvider>();
+
+            // Set up handlers.
+            services.AddScoped<UserConfigurationHandler>();
+            services.AddScoped<IdentityServiceHandler>();
+            services.AddScoped<OAuth2Handler>();
+            services.AddScoped<Saml2Handler>();
+            services.AddScoped<WsFederationHandler>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
