@@ -164,7 +164,8 @@
             if (!xml.startsWith('<')) {
                 // The token isn't XML yet, try to base 64 decode (in case of a SAML POST binding).
                 try {
-                    xml = atob(value);
+                    var base64Value = value.replace(/-/g, '+').replace(/_/g, '/'); // Change invalid characters from Base64URL encoding into standard Base64 encoding values (i.e. replace '-' with '+' and '_' with '/').
+                    xml = atob(base64Value);
                 }
                 catch (e) {
                     console.log('Error base 64 decoding value while attempting to decode SAML response: ' + e);
@@ -173,7 +174,9 @@
             if (!xml.startsWith('<')) {
                 // The token isn't XML yet, try to URI decode, base 64 decode and inflate (in case of a SAML Redirect binding).
                 try {
-                    var inflate = new Zlib.RawInflate(stringToByteArray(atob(decodeURIComponent(value))));
+                    var base64Value = decodeURIComponent(value);
+                    base64Value = base64Value.replace(/-/g, '+').replace(/_/g, '/'); // Change invalid characters from Base64URL encoding into standard Base64 encoding values (i.e. replace '-' with '+' and '_' with '/').
+                    var inflate = new Zlib.RawInflate(stringToByteArray(atob(base64Value)));
                     var decompressed = inflate.decompress();
                     xml = utf8ToString(decompressed);
                 }
