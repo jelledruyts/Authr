@@ -10,7 +10,7 @@ namespace Authr.WebApp.Services
 {
     public class AzureStorageUserConfigurationProvider : IUserConfigurationProvider
     {
-        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        private static readonly JsonSerializerOptions JsonSerializerOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, WriteIndented = true };
         private const string UserConfigurationFileName = "user-configuration.json";
         private readonly BlobServiceClient client;
 

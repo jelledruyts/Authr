@@ -59,8 +59,8 @@ namespace Authr.WebApp.Handlers
                 {
                     Id = Guid.NewGuid().ToString(),
                     Name = tenant,
-                    AuthorizationEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/authorize?p={policyId}",
-                    TokenEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/token?p={policyId}",
+                    AuthorizationEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/oauth2/v2.0/authorize",
+                    TokenEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/oauth2/v2.0/token",
                     DeviceCodeEndpoint = null, // Not supported by Azure AD B2C.
                     SamlSignOnEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/samlp/sso/login",
                     SamlLogoutEndpoint = $"https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{policyId}/samlp/sso/logout",
