@@ -186,7 +186,7 @@ namespace Authr.WebApp.Controllers
                     else
                     {
                         var userId = this.User.GetUserId();
-                        await this.userConfigurationHandler.UpdateAndSaveAsync(userId, request);
+                        userConfiguration = await this.userConfigurationHandler.UpdateAndSaveAsync(userId, request);
                         this.telemetryClient.TrackEvent("UserConfiguration.Saved");
                     }
                 }
