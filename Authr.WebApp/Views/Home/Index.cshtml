@@ -721,7 +721,7 @@ var app = new Vue({
 
                         <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <label for="requestParameters-additionalParameters">Additional Parameters</label>
-                            <input type="text" class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service, in query string format (key1=value1&amp;key2=value2...)">
+                            <textarea class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service in query string format (key1=value1&amp;key2=value2...); optionally use new lines instead of ampersands (&amp;)" rows="3"></textarea>
                         </div>
                     </div>
                 </div>

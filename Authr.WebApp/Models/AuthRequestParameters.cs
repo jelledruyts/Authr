@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using IdentityModel.Client;
 using Microsoft.AspNetCore.WebUtilities;
@@ -88,14 +88,19 @@ namespace Authr.WebApp.Models
         {
             // The additional parameters string should be formed like a query string, i.e. "key1=value1&key2=value2...".
             var parameters = new Parameters();
-            var parsedParameters = QueryHelpers.ParseNullableQuery(this.AdditionalParameters);
-            if (parsedParameters != null)
+            var additionalParameters = this.AdditionalParameters;
+            if (!string.IsNullOrWhiteSpace(additionalParameters))
             {
-                foreach (var parameter in parsedParameters)
+                additionalParameters = additionalParameters.Replace(Environment.NewLine, "&").Replace('\n', '&'); // Replace newlines with '&' to form a single query string.
+                var parsedParameters = QueryHelpers.ParseNullableQuery(additionalParameters);
+                if (parsedParameters != null)
                 {
-                    // If the same key has multiple values, only keep the first one, as multi-value
-                    // keys cannot be represented in a dictionary, and they don't make sense here anyway.
-                    parameters.Add(parameter.Key, parameter.Value.First());
+                    foreach (var parameter in parsedParameters)
+                    {
+                        // If the same key has multiple values, only keep the first one, as multi-value
+                        // keys cannot be represented in a dictionary, and they don't make sense here anyway.
+                        parameters.Add(parameter.Key, parameter.Value.First());
+                    }
                 }
             }
             return parameters;
