@@ -402,6 +402,11 @@ namespace Authr.WebApp.Controllers
                             request.Response = await this.oauth2Handler.HandleOnBehalfOfRequestAsync(requestParameters);
                             flow.IsComplete = true;
                         }
+                        else if (requestParameters.RequestType == Constants.RequestTypes.OAuth2CustomGrant)
+                        {
+                            request.Response = await this.oauth2Handler.HandleCustomGrantRequestAsync(requestParameters);
+                            flow.IsComplete = true;
+                        }
                         else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
                         {
                             if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)

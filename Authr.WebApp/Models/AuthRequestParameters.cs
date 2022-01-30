@@ -39,6 +39,7 @@ namespace Authr.WebApp.Models
         public bool SilentAuthentication { get; set; }
         public string RequestMethod { get; set; }
         public bool UsePkce { get; set; }
+        public string GrantType { get; set; }
         public string AdditionalParameters { get; set; }
 
         public AuthRequestParameters()
@@ -79,6 +80,7 @@ namespace Authr.WebApp.Models
             this.SilentAuthentication = value.SilentAuthentication;
             this.RequestMethod = value.RequestMethod;
             this.UsePkce = value.UsePkce;
+            this.GrantType = value.GrantType;
             this.AdditionalParameters = value.AdditionalParameters;
         }
 

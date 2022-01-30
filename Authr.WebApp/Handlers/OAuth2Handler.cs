@@ -223,5 +223,26 @@ namespace Authr.WebApp.Handlers
         }
 
         #endregion
+
+        #region Custom Grant
+
+        public async Task<AuthResponse> HandleCustomGrantRequestAsync(AuthRequestParameters requestParameters)
+        {
+            Guard.NotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 grant.");
+            Guard.NotEmpty(requestParameters.GrantType, "The grant type must be specified for an OAuth 2.0 grant.");
+            var client = this.httpClientFactory.CreateClient();
+            var request = new TokenRequest
+            {
+                GrantType = requestParameters.GrantType,
+                Address = requestParameters.TokenEndpoint,
+                ClientId = requestParameters.ClientId,
+                ClientSecret = requestParameters.ClientSecret,
+                Parameters = requestParameters.GetAdditionalParameters()
+            };
+            var response = await client.RequestTokenAsync(request);
+            return AuthResponse.FromTokenResponse(response);
+        }
+
+        #endregion
     }
 }

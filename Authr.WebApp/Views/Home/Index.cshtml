@@ -79,6 +79,9 @@ var app = new Vue({
                 }
             }
         },
+        'requestParameters.grantType': function(newValue, oldValue) {
+            this.validateParameters();
+        },
         'requestParameters.requestType': function(newValue, oldValue) {
             this.validateParameters();
         },
@@ -161,6 +164,11 @@ var app = new Vue({
         },
         validateParameters: function() {
             this.validationMessage = '';
+            if (this.requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant') {
+                if (this.requestParameters.grantType === null || this.requestParameters.grantType.trim() === '') {
+                    this.validationMessage += 'The grant type must be specified for an OAuth 2.0 custom grant. ';
+                }
+            }
             if (this.requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect') {
                 // Make sure 'openid' is part of the requested scopes (https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).
                 if (this.requestParameters.scope === null || (' ' + this.requestParameters.scope + ' ').indexOf('openid') < 0) {
@@ -506,6 +514,10 @@ var app = new Vue({
                             <label class="form-check-label" for="requestParameters-requestType-deviceToken">OAuth 2.0 Device Authorization Grant - Token Request</label>
                         </div>
                         <div class="form-check">
+                            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-oauth2CustomGrant" value="@Constants.RequestTypes.OAuth2CustomGrant" v-model="requestParameters.requestType">
+                            <label class="form-check-label" for="requestParameters-requestType-oauth2CustomGrant">OAuth 2.0 Custom Grant</label>
+                        </div>
+                        <div class="form-check">
                             <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
                             <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
                         </div>
@@ -585,7 +597,12 @@ var app = new Vue({
                 <div id="requestParameters-panel" class="card mt-3">
                     <div class="card-header">Request Parameters</div>
                     <div class="card-body">
-                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+                        <div class="form-group" v-if="requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant'">
+                            <label for="requestParameters-grantType">Grant Type</label>
+                            <input type="text" class="form-control" id="requestParameters-grantType" v-model="requestParameters.grantType" placeholder="Enter the grant type">
+                        </div>
+
+                        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.OAuth2CustomGrant' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
                             <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
