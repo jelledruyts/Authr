@@ -76,6 +76,7 @@ namespace Authr.WebApp.Handlers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Scope = requestParameters.Scope,
                 Parameters = requestParameters.GetAdditionalParameters()
             });
@@ -98,6 +99,7 @@ namespace Authr.WebApp.Handlers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Scope = requestParameters.Scope,
                 RefreshToken = requestParameters.RefreshToken,
                 Parameters = requestParameters.GetAdditionalParameters()
@@ -118,6 +120,7 @@ namespace Authr.WebApp.Handlers
             {
                 Address = requestParameters.DeviceCodeEndpoint,
                 ClientId = requestParameters.ClientId,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Scope = requestParameters.Scope,
                 Parameters = requestParameters.GetAdditionalParameters()
             });
@@ -134,6 +137,7 @@ namespace Authr.WebApp.Handlers
             {
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 DeviceCode = requestParameters.DeviceCode,
                 Parameters = requestParameters.GetAdditionalParameters()
             });
@@ -157,6 +161,7 @@ namespace Authr.WebApp.Handlers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Scope = requestParameters.Scope,
                 UserName = requestParameters.UserName,
                 Password = requestParameters.Password,
@@ -185,6 +190,7 @@ namespace Authr.WebApp.Handlers
                 GrantType = "urn:ietf:params:oauth:grant-type:jwt-bearer",
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Parameters = requestParameters.GetAdditionalParameters()
             };
             request.Parameters.Add(OidcConstants.TokenRequest.Scope, requestParameters.Scope);
@@ -214,6 +220,7 @@ namespace Authr.WebApp.Handlers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Code = requestParameters.AuthorizationCode,
                 RedirectUri = requestParameters.RedirectUri,
                 CodeVerifier = codeVerifier,
@@ -237,6 +244,7 @@ namespace Authr.WebApp.Handlers
                 Address = requestParameters.TokenEndpoint,
                 ClientId = requestParameters.ClientId,
                 ClientSecret = requestParameters.ClientSecret,
+                ClientCredentialStyle = ClientCredentialStyle.PostBody,
                 Parameters = requestParameters.GetAdditionalParameters()
             };
             var response = await client.RequestTokenAsync(request);
