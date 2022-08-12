@@ -33,7 +33,7 @@ jobs:
       run: |
         dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
     - name: Azure WebApp
-      uses: Azure/webapps-deploy@v1
+      uses: Azure/webapps-deploy@v2
       with: 
         app-name: authr-euw
         package: ${{ env.DOTNET_ROOT }}/Authr.Website
