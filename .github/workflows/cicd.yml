@@ -21,7 +21,7 @@ jobs:
       with:
         client-id: 'a96f7b48-548a-4083-8a8a-69440bdc0a4b'
         tenant-id: 'bfcb8d36-2e08-4142-908c-27eb5be24938'
-        subscription-id: '6ec494fd-a670-443c-b9c5-5c67358fb9d4'
+        subscription-id: '91e4690b-8b40-4d9a-9610-37bf01cad70f'
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
