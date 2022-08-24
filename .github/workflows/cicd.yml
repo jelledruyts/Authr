@@ -1,9 +1,14 @@
 name: Build and Deploy Authr
 
 on:
+  workflow_dispatch:
   push:
     branches:
     - master
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -12,6 +17,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
+    - name: Azure Login
+      uses: Azure/login@v1
+      with:
+        client-id: 'a96f7b48-548a-4083-8a8a-69440bdc0a4b'
+        tenant-id: 'bfcb8d36-2e08-4142-908c-27eb5be24938'
+        subscription-id: '91e4690b-8b40-4d9a-9610-37bf01cad70f'
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
@@ -22,8 +33,7 @@ jobs:
       run: |
         dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
     - name: Azure WebApp
-      uses: Azure/webapps-deploy@v1
+      uses: Azure/webapps-deploy@v2
       with: 
-        app-name: authr-app-euw # Replace with your app name
-        publish-profile: ${{ secrets.AuthrAppEuwWebAppPublishProfile }} # Define secret variable in repository settings as per action documentation
+        app-name: authr-euw
         package: ${{ env.DOTNET_ROOT }}/Authr.Website
