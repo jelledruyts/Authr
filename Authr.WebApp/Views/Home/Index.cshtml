@@ -758,6 +758,10 @@ var app = new Vue({
                                     <input type="text" class="form-control" placeholder="Enter the name of the Client App to save this as" v-bind:disabled="!requestOptions.saveClientApplication" v-model="requestOptions.saveClientApplicationAsName">
                                 </div>
                             </div>
+                            <div class="text-muted small">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Although the data you save is encrypted at rest, it's not recommended to save production client secrets or other confidential information.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -774,7 +778,7 @@ var app = new Vue({
 
                 <div class="form-group form-inline mt-3">
                     <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="form-control btn btn-sm btn-outline-secondary" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="fas fa-link"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
-                    <span class="text-muted text-small ml-2" v-if="generatedLink">
+                    <span class="text-muted ml-2" v-if="generatedLink">
                         Use <a v-bind:href="generatedLink">this link</a> to pre-populate @Constants.App.Name with the values above.
                     </span>
                 </div>
