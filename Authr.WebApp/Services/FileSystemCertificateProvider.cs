@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.FileProviders;
 
 namespace Authr.WebApp.Services
@@ -9,32 +10,31 @@ namespace Authr.WebApp.Services
     public class FileSystemCertificateProvider : ICertificateProvider
     {
         private static IDictionary<string, X509Certificate2> certificates = new Dictionary<string, X509Certificate2>();
+        private readonly IConfiguration configuration;
         private readonly IFileProvider fileProvider;
+        private readonly string relativeBasePath;
 
-        public FileSystemCertificateProvider(IFileProvider fileProvider)
+        public FileSystemCertificateProvider(IConfiguration configuration, IFileProvider fileProvider, string relativeBasePath)
         {
+            this.configuration = configuration;
             this.fileProvider = fileProvider;
-        }
-
-        public void LoadCertificate(string name, string path, string password)
-        {
-            if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(path) && !string.IsNullOrWhiteSpace(password))
-            {
-                if (!Path.IsPathRooted(path))
-                {
-                    path = this.fileProvider.GetFileInfo(path).PhysicalPath;
-                }
-                certificates[name] = new X509Certificate2(path, password);
-            }
+            this.relativeBasePath = relativeBasePath;
         }
 
         public Task<X509Certificate2> GetCertificateAsync(string name)
         {
-            if (certificates.ContainsKey(name))
+            if (!certificates.ContainsKey(name))
             {
-                return Task.FromResult(certificates[name]);
+                var path = this.configuration.GetValue<string>($"App:Certificates:{name}:Path");
+                var password = this.configuration.GetValue<string>($"App:Certificates:{name}:Password");
+                if (!Path.IsPathRooted(path))
+                {
+                    var relativePath = Path.Combine(this.relativeBasePath, path);
+                    path = this.fileProvider.GetFileInfo(relativePath).PhysicalPath;
+                }
+                certificates[name] = new X509Certificate2(path, password);
             }
-            return Task.FromResult<X509Certificate2>(null);
+            return Task.FromResult(certificates[name]);
         }
     }
 }

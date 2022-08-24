@@ -44,10 +44,15 @@ namespace Authr.WebApp
             services.AddApplicationInsightsTelemetry();
 
             // Set up a certificate provider.
-            var certificateProvider = new FileSystemCertificateProvider(WebHostEnvironment.ContentRootFileProvider);
-            certificateProvider.LoadCertificate(Constants.CertificateNames.SigningCertificate, Configuration.GetValue<string>("App:SigningCertificate:Path"), Configuration.GetValue<string>("App:SigningCertificate:Password"));
-            certificateProvider.LoadCertificate(Constants.CertificateNames.EncryptionCertificate, Configuration.GetValue<string>("App:EncryptionCertificate:Path"), Configuration.GetValue<string>("App:EncryptionCertificate:Password"));
-            services.AddSingleton<ICertificateProvider>(certificateProvider);
+            var certificatesConnectionString = Configuration.GetValue<string>("App:Certificates:ConnectionString");
+            if (string.IsNullOrWhiteSpace(certificatesConnectionString))
+            {
+                services.AddSingleton<ICertificateProvider>(new FileSystemCertificateProvider(Configuration, WebHostEnvironment.ContentRootFileProvider, "App_Data"));
+            }
+            else
+            {
+                services.AddSingleton<ICertificateProvider>(new AzureStorageCertificateProvider(Configuration, certificatesConnectionString));
+            }
 
             // Configure external Data Protection so that cookies and other secrets can be decoded
             // from different hosting environments (e.g. Web App Slots).
