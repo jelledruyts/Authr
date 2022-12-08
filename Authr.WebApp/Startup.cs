@@ -13,8 +13,6 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Azure.Storage;
-using Microsoft.Azure.Storage.Blob;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -57,14 +55,9 @@ namespace Authr.WebApp
             // Configure external Data Protection so that cookies and other secrets can be decoded
             // from different hosting environments (e.g. Web App Slots).
             var dataProtectionConnectionString = Configuration.GetValue<string>("App:DataProtection:ConnectionString");
-            var storageAccount = default(CloudStorageAccount);
-            if (CloudStorageAccount.TryParse(dataProtectionConnectionString, out storageAccount))
+            if (!string.IsNullOrWhiteSpace(dataProtectionConnectionString))
             {
-                var blobClient = storageAccount.CreateCloudBlobClient();
-                var container = blobClient.GetContainerReference("dataprotection-keys");
-                container.CreateIfNotExistsAsync().Wait();
-                var blob = container.GetBlockBlobReference("authr-web/keys.xml");
-                services.AddDataProtection().PersistKeysToAzureBlobStorage(blob);
+                services.AddDataProtection().PersistKeysToAzureBlobStorage(dataProtectionConnectionString, "dataprotection-keys", "authr-web/keys.xml");
             }
 
             // Set up identity.
@@ -72,6 +65,7 @@ namespace Authr.WebApp
             // Don't map any standard OpenID Connect claims to Microsoft-specific claims.
             // See https://leastprivilege.com/2017/11/15/missing-claims-in-the-asp-net-core-2-openid-connect-handler/.
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+#pragma warning disable 0618 // AzureADB2CDefaults is obsolete in favor of "Microsoft.Identity.Web"
             services.AddAuthentication(AzureADB2CDefaults.AuthenticationScheme)
                 .AddAzureADB2C(options => Configuration.Bind("AzureAdB2C", options));
             services.Configure<OpenIdConnectOptions>(AzureADB2CDefaults.OpenIdScheme, options =>
@@ -100,6 +94,7 @@ namespace Authr.WebApp
                 options.ExpireTimeSpan = TimeSpan.FromDays(30);
                 options.SlidingExpiration = true;
             });
+#pragma warning restore 0618
 
             // Set up routing and MVC.
             services.AddRouting(options =>

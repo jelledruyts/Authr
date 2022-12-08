@@ -16,23 +16,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - name: Checkout
+      uses: actions/checkout@v1
     - name: Azure Login
       uses: Azure/login@v1
       with:
         client-id: 'a96f7b48-548a-4083-8a8a-69440bdc0a4b'
         tenant-id: 'bfcb8d36-2e08-4142-908c-27eb5be24938'
         subscription-id: '91e4690b-8b40-4d9a-9610-37bf01cad70f'
-    - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: '3.1.100'
-    - name: Build with dotnet
+        dotnet-version: '7.0.x'
+    - name: Build app
       run: dotnet build "Authr.WebApp\Authr.WebApp.csproj" --configuration Release
-    - name: dotnet publish
+    - name: Publish app
       run: |
         dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
-    - name: Azure WebApp
+    - name: Deploy to Azure Web App
       uses: Azure/webapps-deploy@v2
       with: 
         app-name: authr-euw
