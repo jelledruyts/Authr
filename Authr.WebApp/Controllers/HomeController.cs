@@ -9,6 +9,7 @@ using Authr.WebApp.Models;
 using Authr.WebApp.Services;
 using Microsoft.ApplicationInsights;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Authr.WebApp.Controllers
@@ -18,6 +19,7 @@ namespace Authr.WebApp.Controllers
         #region Fields
 
         private readonly ILogger<HomeController> logger;
+        private readonly IConfiguration configuration;
         private readonly IAuthFlowCacheProvider authFlowCacheProvider;
         private readonly TelemetryClient telemetryClient;
         private readonly AbsoluteUrlProvider absoluteUrlProvider;
@@ -31,9 +33,10 @@ namespace Authr.WebApp.Controllers
 
         #region Constructors
 
-        public HomeController(ILogger<HomeController> logger, IAuthFlowCacheProvider authFlowCacheProvider, TelemetryClient telemetryClient, AbsoluteUrlProvider absoluteUrlProvider, UserConfigurationHandler userConfigurationHandler, IdentityServiceHandler identityServiceImportHandler, OAuth2Handler oauth2Handler, Saml2Handler saml2Handler, WsFederationHandler wsFederationHandler)
+        public HomeController(ILogger<HomeController> logger, IConfiguration configuration, IAuthFlowCacheProvider authFlowCacheProvider, TelemetryClient telemetryClient, AbsoluteUrlProvider absoluteUrlProvider, UserConfigurationHandler userConfigurationHandler, IdentityServiceHandler identityServiceImportHandler, OAuth2Handler oauth2Handler, Saml2Handler saml2Handler, WsFederationHandler wsFederationHandler)
         {
             this.logger = logger;
+            this.configuration = configuration;
             this.authFlowCacheProvider = authFlowCacheProvider;
             this.telemetryClient = telemetryClient;
             this.absoluteUrlProvider = absoluteUrlProvider;
@@ -83,6 +86,16 @@ namespace Authr.WebApp.Controllers
         [Route("")]
         public Task<IActionResult> Index(AuthRequestParameters requestParameters, AuthResponseParameters responseParameters)
         {
+            var canonicalDomain = this.configuration.GetValue<string>("App:Domains:CanonicalDomain");
+            var obsoleteDomains = this.configuration.GetValue<string>("App:Domains:ObsoleteDomains");
+            if (canonicalDomain != null && obsoleteDomains != null)
+            {
+                // If a GET request to the site root and without any parameters comes in on an obsolete domain, redirect to the canonical domain.
+                if (this.Request.Path == "/" && this.Request.Query.Count == 0 && obsoleteDomains.Split(';').Any(d => this.Request.Host.Host.Equals(d, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return Task.FromResult((IActionResult)RedirectPermanent($"https://{canonicalDomain}"));
+                }
+            }
             // Whenever a GET comes in, bind the possibly matching parameters to a request or response (done automatically
             // by model binding) and attempt to handle either.
             return HandlePageRequestAsync(requestParameters, responseParameters);
