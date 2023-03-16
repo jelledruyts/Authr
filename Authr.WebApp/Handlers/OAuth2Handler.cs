@@ -208,13 +208,21 @@ namespace Authr.WebApp.Handlers
         {
             Guard.NotEmpty(requestParameters.TokenEndpoint, "The token endpoint must be specified for an OAuth 2.0 Authorization Code Grant.");
             Guard.NotEmpty(requestParameters.ClientId, "The client id must be specified for an OAuth 2.0 Authorization Code Grant.");
-            Guard.NotEmpty(requestParameters.ClientSecret, "The client credentials must be specified for an OAuth 2.0 Authorization Code Grant.");
             Guard.NotEmpty(requestParameters.AuthorizationCode, "The authorization code must be specified for an OAuth 2.0 Authorization Code Grant.");
             if (requestParameters.RequestType != Constants.RequestTypes.OpenIdConnect && requestParameters.RequestType != Constants.RequestTypes.AuthorizationCode)
             {
                 throw new Exception("Invalid request type for Authorization Code grant: " + requestParameters.RequestType);
             }
             var client = this.httpClientFactory.CreateClient();
+            if (!string.IsNullOrWhiteSpace(codeVerifier))
+            {
+                // Add an Origin header in case the request is for a PKCE flow, to emulate the fact that we're
+                // sending this call from a browser and avoid "AADSTS9002327: Tokens issued for the 'Single-Page Application'
+                // client-type may only be redeemed via cross-origin requests".
+                // See https://github.com/AzureAD/microsoft-authentication-library-for-js/issues/2482 and
+                // https://learn.microsoft.com/azure/active-directory/develop/v2-oauth2-auth-code-flow#redirect-uris-for-single-page-apps-spas.
+                client.DefaultRequestHeaders.Add("Origin", requestParameters.RedirectUri);
+            }
             var response = await client.RequestAuthorizationCodeTokenAsync(new AuthorizationCodeTokenRequest
             {
                 Address = requestParameters.TokenEndpoint,
