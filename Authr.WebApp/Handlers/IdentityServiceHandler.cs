@@ -91,6 +91,10 @@ namespace Authr.WebApp.Handlers
                             {
                                 identityService.TokenEndpoint = value.GetString();
                             }
+                            if (openIdConnectMetadata.RootElement.TryGetProperty("device_authorization_endpoint", out value))
+                            {
+                                identityService.DeviceCodeEndpoint = value.GetString();
+                            }
                         }
                     }
                     if (!string.IsNullOrWhiteSpace(request.FederationMetadataUrl))
