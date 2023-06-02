@@ -67,6 +67,21 @@ namespace Authr.WebApp.Handlers
                     WsFederationSignOnEndpoint = null // Not supported by Azure AD B2C.
                 };
             }
+            else if (request.ImportType == Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId && !string.IsNullOrWhiteSpace(request.Tenant))
+            {
+                var tenant = request.Tenant.Replace(".onmicrosoft.com", string.Empty, StringComparison.InvariantCultureIgnoreCase);
+                return new IdentityService
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    Name = tenant,
+                    AuthorizationEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/authorize",
+                    TokenEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/token",
+                    DeviceCodeEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/devicecode",
+                    SamlSignOnEndpoint = null, // Not supported.
+                    SamlLogoutEndpoint = null, // Not supported.
+                    WsFederationSignOnEndpoint = null // Not supported.
+                };
+            }
             else if (!string.IsNullOrWhiteSpace(request.FederationMetadataUrl) || !string.IsNullOrWhiteSpace(request.OpenIdConnectMetadataUrl))
             {
                 try

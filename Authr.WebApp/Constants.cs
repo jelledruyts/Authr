@@ -47,6 +47,7 @@ namespace Authr.WebApp
             public const string Metadata = nameof(Metadata);
             public const string AzureAD = nameof(AzureAD);
             public const string AzureADB2C = nameof(AzureADB2C);
+            public const string MicrosoftEntraExternalId = nameof(MicrosoftEntraExternalId);
         }
 
         public static class RequestActions
