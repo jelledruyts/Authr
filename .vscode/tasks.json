@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/Authr.WebApp/Authr.WebApp.csproj",
+                "${workspaceFolder}/Authr.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -23,7 +23,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/Authr.WebApp/Authr.WebApp.csproj",
+                "${workspaceFolder}/Authr.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -36,7 +36,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/Authr.WebApp/Authr.WebApp.csproj",
+                "${workspaceFolder}/Authr.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -48,7 +48,7 @@
             "type": "process",
             "args": [
                 "clean",
-                "${workspaceFolder}/Authr.WebApp",
+                "${workspaceFolder}/Authr.sln",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -60,7 +60,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/Authr.WebApp",
+                "${workspaceFolder}/Authr.sln",
                 "--configuration",
                 "Release",
                 "/property:GenerateFullPaths=true",

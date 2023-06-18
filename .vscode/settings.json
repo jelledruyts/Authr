@@ -1,4 +1,3 @@
 {
-    "appService.preDeployTask": "publish-release",
-    "appService.deploySubpath": "Authr.WebApp/bin/Release/netcorenet7.0/publish"
+    "dotnet.defaultSolution": "Authr.WebApp.sln"
 }
