@@ -1,0 +1,74 @@
+<div class="modal fade" id="importIdentityService-modal" tabindex="-1" role="dialog" aria-labelledby="importIdentityService-label" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importIdentityService-label">Import Identity Service</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label class="form-label">Import from</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-metadata" value="@Constants.IdentityServiceImportTypes.Metadata" v-model="identityServiceImportRequestParameters.importType">
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-metadata">Metadata</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureAD" value="@Constants.IdentityServiceImportTypes.AzureAD" v-model="identityServiceImportRequestParameters.importType">
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureAD">Azure AD</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureADB2C" value="@Constants.IdentityServiceImportTypes.AzureADB2C" v-model="identityServiceImportRequestParameters.importType">
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureADB2C">Azure AD B2C</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-microsoftEntraExternalId" value="@Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId" v-model="identityServiceImportRequestParameters.importType">
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-microsoftEntraExternalId">Microsoft Entra External ID</label>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-openIdConnectMetadataUrl">OpenID Connect Metadata URL</label>
+                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-openIdConnectMetadataUrl" v-model="identityServiceImportRequestParameters.openIdConnectMetadataUrl" placeholder="Enter the URL of the OpenID Connect metadata document">
+                    </div>
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-federationMetadataUrl">Federation Metadata URL</label>
+                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-federationMetadataUrl" v-model="identityServiceImportRequestParameters.federationMetadataUrl" placeholder="Enter the URL of the federation metadata document">
+                    </div>
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureAD'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-tenant">Azure AD Tenant</label>
+                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Azure AD tenant">
+                        <div class="mt-3 small text-muted">
+                            <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant Azure AD application:
+                            <div class="input-group input-group-sm mt-2">
+                                <input type="text" class="form-control font-monospace" id="clientid-aad-mt" value="fb859816-0967-41eb-a59f-6a525d3fda8e" readonly>
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-tenant">Azure AD B2C Tenant</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name of the Azure AD B2C tenant">
+                            <span class="input-group-text">.onmicrosoft.com</span>
+                        </div>
+                    </div>
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-policyId">Azure AD B2C User Flow (Policy) Name</label>
+                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-policyId" v-model="identityServiceImportRequestParameters.policyId" placeholder="Enter the name of the Azure AD B2C user flow or policy">
+                    </div>
+                    <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId'">
+                        <label class="form-label" for="identityServiceImportRequestParameters-tenant">Microsoft Entra External ID Tenant</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name of the Microsoft Entra External ID tenant">
+                            <span class="input-group-text">.onmicrosoft.com</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" v-on:click="performIdentityServiceImport()" v-bind:disabled="processing">Import <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+            </div>
+        </div>
+    </div>
+</div>

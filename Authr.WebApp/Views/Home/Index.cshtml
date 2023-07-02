@@ -3,474 +3,20 @@
 }
 @model AuthViewModel
 @section Scripts {
-    <script type="text/javascript">
-        var app = new Vue({
-            el: '#app',
-            data: function () {
-                return {
-                    requestParameters: null,
-                    response: null,
-                    flow: null,
-                    userConfiguration: null,
-                    userConfigurationEdit: null,
-                    generatedLink: null,
-                    requestOptions: {
-                        saveIdentityService: false,
-                        saveIdentityServiceAsName: null,
-                        saveClientApplication: false,
-                        saveClientApplicationAsName: null,
-                        saveRequestTemplate: false,
-                        saveRequestTemplateAsName: null
-                    },
-                    requestTemplateId: null,
-                    selectedIdentityService: null,
-                    identityServiceImportRequestParameters: { importType: '@Constants.IdentityServiceImportTypes.Metadata' },
-                    identityServiceImportRequestTarget: null,
-                    encodedToken: null,
-                    decryptedToken: null,
-                    processing: false,
-                    validationMessage: null,
-                    errorMessage: null
-                }
-            },
-            computed: {
-                userSignedIn: function () {
-                    return this.userConfiguration !== null;
-                },
-                parsedToken: function () {
-                    return Authr.parseToken(this.encodedToken);
-                },
-            },
-            filters: {
-                datetime: function (value) {
-                    if (value == null) {
-                        return null;
-                    }
-                    return new Date(value).toLocaleString();
-                },
-                token: function (decodedToken) {
-                    if (decodedToken) {
-                        if (decodedToken.tokenType === 'JWT' && decodedToken.header && decodedToken.body) {
-                            return JSON.stringify(decodedToken.header, null, 2) + '.' + JSON.stringify(decodedToken.body, null, 2);
-                        }
-                        if (decodedToken.tokenType === 'SAML' && decodedToken.body) {
-                            return decodedToken.body;
-                        }
-                        return decodedToken;
-                    }
-                    return 'Invalid token';
-                }
-            },
-            watch: {
-                'response': function (newValue, oldValue) {
-                    if (this.response) {
-                        this.showTab('mainTabHeaderResponse');
-                    }
-                },
-                'requestTemplateId': function (newValue, oldValue) {
-                    if (this.userConfiguration) {
-                        var requestTemplate = this.findById(this.userConfiguration.requestTemplates, newValue);
-                        if (requestTemplate !== null) {
-                            // Set the request parameters to a clone of the template's request parameters.
-                            this.requestParameters = JSON.parse(JSON.stringify(requestTemplate.requestParameters));
-                            this.requestOptions.saveRequestTemplateAsName = requestTemplate.name;
-                        } else {
-                            this.requestOptions.saveRequestTemplateAsName = null;
-                        }
-                    }
-                },
-                'requestParameters.grantType': function (newValue, oldValue) {
-                    this.validateParameters();
-                },
-                'requestParameters.requestType': function (newValue, oldValue) {
-                    this.validateParameters();
-                },
-                'requestParameters.scope': function (newValue, oldValue) {
-                    this.validateParameters();
-                },
-                'requestParameters.responseMode': function (newValue, oldValue) {
-                    this.validateParameters();
-                },
-                'requestParameters.responseType': function (newValue, oldValue) {
-                    this.validateParameters();
-                },
-                'requestParameters.identityServiceId': function (newValue, oldValue) {
-                    if (this.userConfiguration) {
-                        var identityService = this.findById(this.userConfiguration.identityServices, newValue);
-                        if (identityService !== null) {
-                            this.copyIdentityServiceProperties(identityService, this.requestParameters);
-                            this.requestOptions.saveIdentityServiceAsName = identityService.name;
-
-                            // Check if the current client application is part of the current identity service.
-                            var clientApplication = this.findById(identityService.clientApplications, this.requestParameters.clientApplicationId);
-                            if (clientApplication === null || clientApplication.id !== this.requestParameters.clientApplicationId) {
-                                // If not, ensure no client application is set.
-                                this.requestParameters.clientApplicationId = null;
-                            }
-                        } else {
-                            // There is no identity service, also ensure no client application is set.
-                            this.requestParameters.clientApplicationId = null;
-                            this.requestOptions.saveIdentityServiceAsName = null;
-                        }
-                        this.selectedIdentityService = identityService;
-                    }
-                },
-                'requestParameters.clientApplicationId': function (newValue, oldValue) {
-                    this.requestOptions.saveClientApplicationAsName = null;
-                    if (this.selectedIdentityService !== null) {
-                        var clientApplication = this.findById(this.selectedIdentityService.clientApplications, newValue);
-                        if (clientApplication !== null) {
-                            this.requestParameters.clientId = clientApplication.clientId;
-                            this.requestParameters.clientSecret = clientApplication.clientSecret;
-                            this.requestOptions.saveClientApplicationAsName = clientApplication.name;
-                        }
-                    }
-                },
-                'userConfiguration': function (newValue, oldValue) {
-                    // Clone the user configuration for editing.
-                    this.userConfigurationEdit = JSON.parse(JSON.stringify(newValue));;
-                },
-                'encodedToken': function (newValue, oldValue) {
-                    // When the encoded token changes, the decrypted token is no longer valid.
-                    this.decryptedToken = null;
-                }
-            },
-            methods: {
-                showTab: function (tabHeaderId) {
-                    setTimeout(function () {
-                        // This is executed after Vue rendering is complete; trigger a call to show the tab.
-                        $('#' + tabHeaderId).tab('show');
-                        // Scroll to the top already (the tab is showing asynchronously so that's not complete yet).
-                        document.getElementById('mainTabHeader').scrollIntoView();
-                    }, 0);
-                },
-                findById: function (array, id) {
-                    if (array) {
-                        for (var i = 0; i < array.length; i++) {
-                            if (array[i].id === id) {
-                                return array[i];
-                            }
-                        }
-                    }
-                    return null;
-                },
-                copyIdentityServiceProperties: function (from, to) {
-                    to.authorizationEndpoint = from.authorizationEndpoint;
-                    to.tokenEndpoint = from.tokenEndpoint;
-                    to.deviceCodeEndpoint = from.deviceCodeEndpoint;
-                    to.samlSignOnEndpoint = from.samlSignOnEndpoint;
-                    to.samlLogoutEndpoint = from.samlLogoutEndpoint;
-                    to.wsFederationSignOnEndpoint = from.wsFederationSignOnEndpoint;
-                },
-                validateParameters: function () {
-                    this.validationMessage = '';
-                    if (this.requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant') {
-                        if (this.requestParameters.grantType === null || this.requestParameters.grantType.trim() === '') {
-                            this.validationMessage += 'The grant type must be specified for an OAuth 2.0 custom grant. ';
-                        }
-                    }
-                    if (this.requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect') {
-                        // Make sure 'openid' is part of the requested scopes (https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest).
-                        if (this.requestParameters.scope === null || (' ' + this.requestParameters.scope + ' ').indexOf('openid') < 0) {
-                            this.validationMessage += 'The scope must include "openid" for an OpenID Connect request. ';
-                        }
-                    }
-                    if (this.requestParameters.requestType === '@Constants.RequestTypes.Implicit') {
-                        // Make sure response mode is not set and response type is set to 'token' (https://tools.ietf.org/html/rfc6749#section-4.2.1).
-                        if (this.requestParameters.responseType !== 'token') {
-                            this.validationMessage += 'The response type should be set to "token" for an OAuth 2.0 Implicit Grant request. ';
-                        }
-                        if (this.requestParameters.responseMode) {
-                            this.validationMessage += 'The response mode should not be set for an OAuth 2.0 Implicit Grant request. ';
-                        }
-                    }
-                    if (this.requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode') {
-                        // Make sure response mode is not set and response type is set to 'code' (https://tools.ietf.org/html/rfc6749#section-3.1.1).
-                        if (this.requestParameters.responseType !== 'code') {
-                            this.validationMessage += 'The response type should be set to "code" for an OAuth 2.0 Authorization Code request. ';
-                        }
-                        if (this.requestParameters.responseMode) {
-                            this.validationMessage += 'The response mode should not be set for an OAuth 2.0 Authorization Code request. ';
-                        }
-                    }
-                },
-                prepareDeviceTokenRequestParameters: function (deviceCode) {
-                    this.requestParameters.requestType = '@Constants.RequestTypes.DeviceToken';
-                    this.requestParameters.deviceCode = deviceCode;
-                    this.showTab('mainTabHeaderRequest');
-                },
-                prepareRefreshTokenRequestParameters: function (refreshToken) {
-                    this.requestParameters.requestType = '@Constants.RequestTypes.RefreshToken';
-                    this.requestParameters.refreshToken = refreshToken;
-                    this.showTab('mainTabHeaderRequest');
-                },
-                submitRequest: function (requestAction) {
-                    var requestValue = {
-                        requestParameters: this.requestParameters,
-                        options: this.requestOptions
-                    };
-                    requestValue.requestParameters.requestAction = requestAction;
-                    this.submit('request', requestValue);
-                },
-                submitResponse: function (response) {
-                    this.submit('response', response);
-                },
-                submit: function (path, value) {
-                    this.response = null;
-                    this.flow = null;
-                    this.processing = true;
-                    this.errorMessage = null;
-                    var that = this;
-                    axios.post('/api/' + path, value)
-                        .then(function (response) {
-                            // Make sure to also set the requestParameters coming back, e.g. to get the request parameter details
-                            // for a previous request that was now responded to through a URL #fragment (e.g. implicit flow).
-                            that.requestParameters = response.data.requestParameters;
-                            that.response = response.data.response;
-                            if (response.data.userConfiguration) {
-                                that.userConfiguration = response.data.userConfiguration;
-                            }
-                            that.flow = response.data.flow;
-                            that.requestOptions.saveIdentityService = false;
-                            that.requestOptions.saveClientApplication = false;
-                            that.requestOptions.saveRequestTemplate = false;
-                            that.generatedLink = response.data.generatedLink;
-                            if (response.data.requestedRedirectUrl) {
-                                window.location.replace(response.data.requestedRedirectUrl);
-                            } else if (response.data.requestedPageContent) {
-                                document.open();
-                                document.write(response.data.requestedPageContent);
-                                document.close();
-                            } else {
-                                that.processing = false;
-                            }
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                            that.errorMessage = error.message;
-                            toastr.error(error.message);
-                            that.processing = false;
-                        });
-                },
-                sendToTokenDecoder: function (token) {
-                    this.encodedToken = token;
-                    this.showTab('mainTabHeaderToken');
-                },
-                decodeToken: function (token) {
-                    return Authr.decodeToken(token);
-                },
-                decryptToken: function (token) {
-                    var that = this;
-                    axios.post('/api/decryptToken', { encryptedToken: token })
-                        .then(function (response) {
-                            that.decryptedToken = response.data;
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                            that.errorMessage = error.message;
-                            toastr.error(error.message);
-                        });
-                },
-                deleteItem: function (array, value) {
-                    array.splice(array.indexOf(value), 1);
-                },
-                moveItemUp: function (array, value) {
-                    var index = array.indexOf(value);
-                    array.splice(index, 1);
-                    array.splice(index - 1, 0, value);
-                },
-                moveItemDown: function (array, value) {
-                    var index = array.indexOf(value);
-                    array.splice(index, 1);
-                    array.splice(index + 1, 0, value);
-                },
-                addIdentityService: function (array) {
-                    array.push({ clientApplications: [] });
-                },
-                addClientApplication: function (array) {
-                    array.push({});
-                },
-                saveUserConfiguration: function () {
-                    this.processing = true;
-                    this.errorMessage = null;
-                    var that = this;
-                    axios.post('/api/userConfiguration', this.userConfigurationEdit)
-                        .then(function (response) {
-                            that.userConfiguration = response.data;
-                            that.processing = false;
-                            toastr.success('Configuration saved successfully');
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                            that.errorMessage = error.message;
-                            toastr.error(error.message);
-                            that.processing = false;
-                        });
-                },
-                showIdentityServiceImportDialog: function (target) {
-                    this.identityServiceImportRequestTarget = target;
-                    $('#importIdentityService-modal').modal();
-                },
-                performIdentityServiceImport: function () {
-                    this.processing = true;
-                    this.errorMessage = null;
-                    var that = this;
-                    axios.post('/api/identityServiceImportRequest', this.identityServiceImportRequestParameters)
-                        .then(function (response) {
-                            var identityService = response.data;
-                            if (identityService) {
-                                if (that.identityServiceImportRequestTarget === 'request') {
-                                    that.copyIdentityServiceProperties(identityService, that.requestParameters);
-                                } else if (that.identityServiceImportRequestTarget === 'configuration' && that.userConfigurationEdit !== null) {
-                                    that.userConfigurationEdit.identityServices.push(identityService);
-                                }
-                            }
-                            $('#importIdentityService-modal').modal('hide');
-                            that.processing = false;
-                        })
-                        .catch(function (error) {
-                            console.log(error);
-                            that.errorMessage = error.message;
-                            toastr.error(error.message);
-                            that.processing = false;
-                        });
-                }
-            },
-            created: function () {
-                this.requestParameters = @Html.Raw(Json.Serialize(Model.RequestParameters));
-                this.response = @Html.Raw(Json.Serialize(Model.Response));
-                this.flow = @Html.Raw(Json.Serialize(Model.Flow));
-                this.userConfiguration = @Html.Raw(Json.Serialize(Model.UserConfiguration));
-                this.generatedLink = @Html.Raw(Json.Serialize(Model.GeneratedLink));
-                if (location.hash && location.hash.length > 1) {
-                    if (location.hash === '#request') {
-                        this.showTab('mainTabHeaderRequest');
-                    }
-                    else if (location.hash === '#token') {
-                        this.showTab('mainTabHeaderToken');
-                    }
-                    else if (location.hash === '#configuration') {
-                        this.showTab('mainTabHeaderConfiguration');
-                    }
-                    else {
-                        // If there are parameters in the #fragment of the URL, this is likely an external auth response;
-                        // send it to the back-end API for processing.
-                        var urlFragment = {};
-                        window.location.hash.substring(1).split('&').map(function (item) {
-                            var key = decodeURIComponent(item.split('=')[0]).replace(/\+/g, ' ');
-                            var value = decodeURIComponent(item.split('=')[1]).replace(/\+/g, ' ');
-                            urlFragment[key] = value;
-                        });
-                        this.submitResponse(urlFragment);
-                    }
-                }
-            }
-        });
-    </script>
+    <partial name="_IndexScript" />
 }
 @section Menu {
-    <ul class="nav navbar-nav flex-grow-1" id="mainTabHeader" role="tablist">
-        <li class="nav-item">
-            <a class="nav-link active" id="mainTabHeaderRequest" data-toggle="tab" href="#mainTabPageRequest" role="tab" aria-controls="mainTabPageRequest" aria-selected="true">New Request</a>
-        </li>
-        <li class="nav-item" v-if="response">
-            <a class="nav-link" id="mainTabHeaderResponse" data-toggle="tab" href="#mainTabPageResponse" role="tab" aria-controls="mainTabPageResponse" aria-selected="false">Response</a>
-        </li>
-        <li class="nav-item" v-if="flow">
-            <a class="nav-link" id="mainTabHeaderFlow" data-toggle="tab" href="#mainTabPageFlow" role="tab" aria-controls="mainTabPageFlow" aria-selected="false">Flow</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" id="mainTabHeaderToken" data-toggle="tab" href="#mainTabPageToken" role="tab" aria-controls="mainTabPageToken" aria-selected="false">Decode Token</a>
-        </li>
-        <li class="nav-item" v-if="userSignedIn">
-            <a class="nav-link" id="mainTabHeaderConfiguration" data-toggle="tab" href="#mainTabPageConfiguration" role="tab" aria-controls="mainTabPageConfiguration" aria-selected="false">Configuration</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
-        </li>
-    </ul>
+    <div class="navbar-nav flex-grow-1" id="mainTabHeader" role="tablist">
+        <button type="button" class="nav-link active" id="mainTabHeaderRequest" data-bs-toggle="tab" data-bs-target="#mainTabPageRequest" role="tab" aria-controls="mainTabPageRequest" aria-selected="true">New Request</button>
+        <button type="button" class="nav-link" v-if="response" v-cloak id="mainTabHeaderResponse" data-bs-toggle="tab" data-bs-target="#mainTabPageResponse" role="tab" aria-controls="mainTabPageResponse" aria-selected="false">Response</button>
+        <button type="button" class="nav-link" v-if="flow" v-cloak id="mainTabHeaderFlow" data-bs-toggle="tab" data-bs-target="#mainTabPageFlow" role="tab" aria-controls="mainTabPageFlow" aria-selected="false">Flow</button>
+        <button type="button" class="nav-link" id="mainTabHeaderToken" data-bs-toggle="tab" data-bs-target="#mainTabPageToken" role="tab" aria-controls="mainTabPageToken" aria-selected="false">Decode Token</button>
+        <button type="button" class="nav-link" v-if="userSignedIn" v-cloak id="mainTabHeaderConfiguration" data-bs-toggle="tab" data-bs-target="#mainTabPageConfiguration" role="tab" aria-controls="mainTabPageConfiguration" aria-selected="false">Configuration</button>
+        <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+    </div>
 }
 <div v-cloak>
-    <div class="modal fade" id="importIdentityService-modal" tabindex="-1" role="dialog" aria-labelledby="importIdentityService-label" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="importIdentityService-label">Import Identity Service</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                </div>
-                <div class="modal-body">
-                    <div>
-                        <label>Import from</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-metadata" value="@Constants.IdentityServiceImportTypes.Metadata" v-model="identityServiceImportRequestParameters.importType">
-                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-metadata">Metadata</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureAD" value="@Constants.IdentityServiceImportTypes.AzureAD" v-model="identityServiceImportRequestParameters.importType">
-                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureAD">Azure AD</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureADB2C" value="@Constants.IdentityServiceImportTypes.AzureADB2C" v-model="identityServiceImportRequestParameters.importType">
-                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureADB2C">Azure AD B2C</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-microsoftEntraExternalId" value="@Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId" v-model="identityServiceImportRequestParameters.importType">
-                            <label class="form-check-label" for="identityServiceImportRequestParameters-importType-microsoftEntraExternalId">Microsoft Entra External ID</label>
-                        </div>
-                    </div>
-                    <div class="mt-3">
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
-                            <label for="identityServiceImportRequestParameters-openIdConnectMetadataUrl">OpenID Connect Metadata URL</label>
-                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-openIdConnectMetadataUrl" v-model="identityServiceImportRequestParameters.openIdConnectMetadataUrl" placeholder="Enter the URL of the OpenID Connect metadata document">
-                        </div>
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.Metadata'">
-                            <label for="identityServiceImportRequestParameters-federationMetadataUrl">Federation Metadata URL</label>
-                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-federationMetadataUrl" v-model="identityServiceImportRequestParameters.federationMetadataUrl" placeholder="Enter the URL of the federation metadata document">
-                        </div>
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureAD'">
-                            <label for="identityServiceImportRequestParameters-tenant">Azure AD Tenant</label>
-                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Azure AD tenant">
-                            <div class="mt-3 small text-muted">
-                                <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant Azure AD application:
-                                <div class="input-group input-group-sm mt-2">
-                                    <input type="text" class="form-control text-monospace" id="clientid-aad-mt" value="fb859816-0967-41eb-a59f-6a525d3fda8e" readonly>
-                                    <div class="input-group-append">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
-                            <label for="identityServiceImportRequestParameters-tenant">Azure AD B2C Tenant</label>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name of the Azure AD B2C tenant">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">.onmicrosoft.com</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureADB2C'">
-                            <label for="identityServiceImportRequestParameters-policyId">Azure AD B2C User Flow (Policy) Name</label>
-                            <input type="text" class="form-control" id="identityServiceImportRequestParameters-policyId" v-model="identityServiceImportRequestParameters.policyId" placeholder="Enter the name of the Azure AD B2C user flow or policy">
-                        </div>
-                        <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId'">
-                            <label for="identityServiceImportRequestParameters-tenant">Microsoft Entra External ID Tenant</label>
-                            <div class="input-group mb-3">
-                                <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name of the Microsoft Entra External ID tenant">
-                                <div class="input-group-append">
-                                    <span class="input-group-text">.onmicrosoft.com</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" v-on:click="performIdentityServiceImport()" v-bind:disabled="processing">Import <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <partial name="_IndexModalImportIdentityService" />
     <form>
         <div class="tab-content" id="mainTabContent">
             <div class="tab-pane fade show active" id="mainTabPageRequest" role="tabpanel" aria-labelledby="mainTabHeaderRequest">
@@ -479,7 +25,7 @@
                     <div class="card-header">Request Template</div>
                     <div class="card-body">
                         <div class="form-group">
-                            <select class="form-control" id="requestTemplateId" v-model="requestTemplateId">
+                            <select class="form-select" id="requestTemplateId" v-model="requestTemplateId">
                                 <option v-bind:value="null">None</option>
                                 <option v-for="requestTemplate in userConfiguration.requestTemplates" v-bind:value="requestTemplate.id">{{ requestTemplate.name }}</option>
                             </select>
@@ -549,7 +95,7 @@
                     <div class="card-header">Identity Service</div>
                     <div class="card-body">
                         <div class="form-group" v-if="userSignedIn && userConfiguration.identityServices.length > 0">
-                            <select class="form-control" id="requestParameters-identityServiceId" v-model="requestParameters.identityServiceId">
+                            <select class="form-select" id="requestParameters-identityServiceId" v-model="requestParameters.identityServiceId">
                                 <option v-bind:value="null">Custom</option>
                                 <option v-for="identityService in userConfiguration.identityServices" v-bind:value="identityService.id">{{ identityService.name }}</option>
                             </select>
@@ -560,27 +106,27 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="requestParameters-authorizationEndpoint">Authorization Endpoint</label>
+                            <label class="form-label" for="requestParameters-authorizationEndpoint">Authorization Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-authorizationEndpoint" v-model="requestParameters.authorizationEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the authorization endpoint">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-tokenEndpoint">Token Endpoint</label>
+                            <label class="form-label" for="requestParameters-tokenEndpoint">Token Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-tokenEndpoint" v-model="requestParameters.tokenEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the token endpoint">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
+                            <label class="form-label" for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the device code endpoint">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
+                            <label class="form-label" for="requestParameters-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-samlSignOnEndpoint" v-model="requestParameters.samlSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML sign-on endpoint">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-samlLogoutEndpoint">SAML Logout Endpoint</label>
+                            <label class="form-label" for="requestParameters-samlLogoutEndpoint">SAML Logout Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-samlLogoutEndpoint" v-model="requestParameters.samlLogoutEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML logout endpoint">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
+                            <label class="form-label" for="requestParameters-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
                             <input type="text" class="form-control" id="requestParameters-wsFederationSignOnEndpoint" v-model="requestParameters.wsFederationSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
                         </div>
                     </div>
@@ -590,18 +136,18 @@
                     <div class="card-header">Client App</div>
                     <div class="card-body">
                         <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
-                            <select class="form-control" id="requestParameters-clientApplicationId" v-model="requestParameters.clientApplicationId">
+                            <select class="form-select" id="requestParameters-clientApplicationId" v-model="requestParameters.clientApplicationId">
                                 <option v-bind:value="null">Custom</option>
                                 <option v-for="clientApplication in selectedIdentityService.clientApplications" v-bind:value="clientApplication.id">{{ clientApplication.name }}</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label for="requestParameters-clientId">Client ID</label>
+                            <label class="form-label" for="requestParameters-clientId">Client ID</label>
                             <input type="text" class="form-control" id="requestParameters-clientId" v-model="requestParameters.clientId" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="Enter the client id of the app registered with the identity service">
                         </div>
                         <div class="form-group">
-                            <label for="requestParameters-clientSecret">Client Secret</label>
+                            <label class="form-label" for="requestParameters-clientSecret">Client Secret</label>
                             <input type="password" class="form-control" id="requestParameters-clientSecret" v-model="requestParameters.clientSecret" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="Enter the client secret of the app registered with the identity service">
                         </div>
                     </div>
@@ -611,116 +157,124 @@
                     <div class="card-header">Request Parameters</div>
                     <div class="card-body">
                         <div class="form-group" v-if="requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant'">
-                            <label for="requestParameters-grantType">Grant Type</label>
+                            <label class="form-label" for="requestParameters-grantType">Grant Type</label>
                             <input type="text" class="form-control" id="requestParameters-grantType" v-model="requestParameters.grantType" placeholder="Enter the grant type">
                         </div>
 
                         <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.OAuth2CustomGrant' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
-                            <label for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
+                            <label class="form-label" for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
                             <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
                             <div class="form-group">
-                                <label for="requestParameters-responseType">Response Type (e.g. '<code>id_token</code>', '<code>token</code>', '<code>code</code>', '<code>code token</code>', '<code>code id_token</code>', '<code>id_token token</code>', '<code>code id_token token</code>')</label>
+                                <label class="form-label" for="requestParameters-responseType">Response Type (e.g. '<code>id_token</code>', '<code>token</code>', '<code>code</code>', '<code>code token</code>', '<code>code id_token</code>', '<code>id_token token</code>', '<code>code id_token token</code>')</label>
                                 <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" placeholder="Enter the response type">
                             </div>
                             <div class="form-group">
-                                <label for="requestParameters-responseMode">Response Mode (e.g. '<code>form_post</code>', '<code>query</code>', '<code>fragment</code>')</label>
+                                <label class="form-label" for="requestParameters-responseMode">Response Mode (e.g. '<code>form_post</code>', '<code>query</code>', '<code>fragment</code>')</label>
                                 <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
                             </div>
                         </div>
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'  || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
-                                <label for="requestParameters-redirectUri">Redirect URI</label>
+                                <label class="form-label" for="requestParameters-redirectUri">Redirect URI</label>
                                 <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
                             </div>
                         </div>
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
                             <div class="form-group">
-                                <input type="checkbox" id="requestParameters-usePkce" v-model="requestParameters.usePkce">
-                                <label class="form-check-label ml-1" for="requestParameters-usePkce">Use Proof Key for Code Exchange (PKCE)</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="requestParameters-usePkce" v-model="requestParameters.usePkce">
+                                    <label class="form-check-label" for="requestParameters-usePkce">Use Proof Key for Code Exchange (PKCE)</label>
+                                </div>
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
                             <div class="form-group">
-                                <label for="requestParameters-refreshToken">Refresh Token</label>
+                                <label class="form-label" for="requestParameters-refreshToken">Refresh Token</label>
                                 <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" placeholder="Enter the refresh token">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.DeviceToken'">
                             <div class="form-group">
-                                <label for="requestParameters-deviceCode">Device Code</label>
+                                <label class="form-label" for="requestParameters-deviceCode">Device Code</label>
                                 <input type="text" class="form-control" id="requestParameters-deviceCode" v-model="requestParameters.deviceCode" placeholder="Enter the device code">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
                             <div class="form-group">
-                                <label for="requestParameters-userName">User Name</label>
+                                <label class="form-label" for="requestParameters-userName">User Name</label>
                                 <input type="text" class="form-control" id="requestParameters-userName" v-model="requestParameters.userName" placeholder="Enter the user name of the resource owner">
                             </div>
                             <div class="form-group">
-                                <label for="requestParameters-password">Password</label>
+                                <label class="form-label" for="requestParameters-password">Password</label>
                                 <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" placeholder="Enter the password of the resource owner">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OnBehalfOf'">
                             <div class="form-group">
-                                <label for="requestParameters-userName">Assertion</label>
+                                <label class="form-label" for="requestParameters-userName">Assertion</label>
                                 <input type="text" class="form-control" id="requestParameters-assertion" v-model="requestParameters.assertion" placeholder="Enter the assertion, i.e. the access token on behalf of which to request a new token">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <div class="form-group">
-                                <label for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
+                                <label class="form-label" for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
                                 <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the application you want to sign in to">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
                             <div class="form-group">
-                                <input type="checkbox" id="requestParameters-forceAuthentication" v-model="requestParameters.forceAuthentication">
-                                <label class="form-check-label ml-1" for="requestParameters-forceAuthentication">Force Authentication</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="requestParameters-forceAuthentication" v-model="requestParameters.forceAuthentication">
+                                    <label class="form-check-label" for="requestParameters-forceAuthentication">Force Authentication</label>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <input type="checkbox" id="requestParameters-silentAuthentication" v-model="requestParameters.silentAuthentication">
-                                <label class="form-check-label ml-1" for="requestParameters-silentAuthentication">Is Passive</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="requestParameters-silentAuthentication" v-model="requestParameters.silentAuthentication">
+                                    <label class="form-check-label" for="requestParameters-silentAuthentication">Is Passive</label>
+                                </div>
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
                             <div class="form-group">
-                                <label for="requestParameters-nameId">Name ID</label>
+                                <label class="form-label" for="requestParameters-nameId">Name ID</label>
                                 <input type="text" class="form-control" id="requestParameters-nameId" v-model="requestParameters.nameId" placeholder="Enter the Name ID of the principal that needs to be logged out">
                             </div>
                             <div class="form-group">
-                                <label for="requestParameters-sessionIndex">Session Index</label>
+                                <label class="form-label" for="requestParameters-sessionIndex">Session Index</label>
                                 <input type="text" class="form-control" id="requestParameters-sessionIndex" v-model="requestParameters.sessionIndex" placeholder="Enter the session identifier that needs to be logged out">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' ">
                             <div class="form-group">
-                                <input type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
-                                <label class="form-check-label ml-1" for="requestParameters-signRequest">Sign Request</label>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
+                                    <label class="form-check-label" for="requestParameters-signRequest">Sign Request</label>
+                                </div>
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
-                                <label for="requestParameters-wsFederationRealmIdentifier">Realm Identifier</label>
+                                <label class="form-label" for="requestParameters-wsFederationRealmIdentifier">Realm Identifier</label>
                                 <input type="text" class="form-control" id="requestParameters-wsFederationRealmIdentifier" v-model="requestParameters.wsFederationRealmIdentifier" placeholder="Enter the identifier of the realm, i.e. the application you want to sign in to">
                             </div>
                         </div>
 
                         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
                             <div class="form-group">
-                                <div class="form-check form-check-inline">Request Binding:</div>
+                                <div class="form-check-inline">Request Binding:</div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpRedirect" value="@Constants.RequestMethods.HttpRedirect" v-model="requestParameters.requestMethod">
                                     <label class="form-check-label" for="requestParameters-requestMethod-httpRedirect">HTTP Redirect</label>
@@ -733,7 +287,7 @@
                         </div>
 
                         <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest'">
-                            <label for="requestParameters-additionalParameters">Additional Parameters</label>
+                            <label class="form-label" for="requestParameters-additionalParameters">Additional Parameters</label>
                             <textarea class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service in query string format (key1=value1&amp;key2=value2...); optionally use new lines instead of ampersands (&amp;)" rows="3"></textarea>
                         </div>
                     </div>
@@ -745,27 +299,33 @@
                         <div v-if="!userSignedIn" class="card-text">Please <a asp-area="AzureADB2C" asp-controller="Account" asp-action="SignIn">sign in</a> if you want to save these details and easily use them again later.</div>
                         <div v-if="userSignedIn" class="form-group">
                             <div class="form-group row mt-2">
-                                <div class="col-sm-3 form-check">
-                                    <input type="checkbox" id="saveRequestTemplate" v-model="requestOptions.saveRequestTemplate">
-                                    <label class="form-check-label col-form-label ml-1" for="saveRequestTemplate">Request Template</label>
+                                <div class="col-sm-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="saveRequestTemplate" v-model="requestOptions.saveRequestTemplate">
+                                        <label class="form-check-label" for="saveRequestTemplate">Request Template</label>
+                                    </div>
                                 </div>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control" placeholder="Enter the name of the request template to save this as" v-bind:disabled="!requestOptions.saveRequestTemplate" v-model="requestOptions.saveRequestTemplateAsName">
                                 </div>
                             </div>
                             <div class="form-group row mt-2">
-                                <div class="col-sm-3 form-check">
-                                    <input type="checkbox" id="saveIdentityService" v-model="requestOptions.saveIdentityService">
-                                    <label class="form-check-label col-form-label ml-1" for="saveIdentityService">Identity Service</label>
+                                <div class="col-sm-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="saveIdentityService" v-model="requestOptions.saveIdentityService">
+                                        <label class="form-check-label" for="saveIdentityService">Identity Service</label>
+                                    </div>
                                 </div>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control" placeholder="Enter the name of the Identity Service to save this as" v-bind:disabled="!requestOptions.saveIdentityService" v-model="requestOptions.saveIdentityServiceAsName" required>
                                 </div>
                             </div>
                             <div class="form-group row mt-2">
-                                <div class="col-sm-3 form-check">
-                                    <input type="checkbox" id="saveClientApplication" v-model="requestOptions.saveClientApplication" v-bind:disabled="!(requestOptions.saveIdentityService || requestParameters.identityServiceId !== null)">
-                                    <label class="form-check-label col-form-label ml-1" for="saveClientApplication">Client App</label>
+                                <div class="col-sm-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="saveClientApplication" v-model="requestOptions.saveClientApplication" v-bind:disabled="!(requestOptions.saveIdentityService || requestParameters.identityServiceId !== null)">
+                                        <label class="form-check-label" for="saveClientApplication">Client App</label>
+                                    </div>
                                 </div>
                                 <div class="col-sm-9">
                                     <input type="text" class="form-control" placeholder="Enter the name of the Client App to save this as" v-bind:disabled="!requestOptions.saveClientApplication" v-model="requestOptions.saveClientApplicationAsName">
@@ -789,9 +349,9 @@
                     <div class="alert alert-danger">{{ errorMessage }}</div>
                 </div>
 
-                <div class="form-group form-inline mt-3">
-                    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="form-control btn btn-sm btn-outline-secondary" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="fas fa-link"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
-                    <span class="text-muted ml-2" v-if="generatedLink">
+                <div class="form-group mt-3">
+                    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="btn btn-sm btn-outline-secondary" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="fas fa-link"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                    <span class="text-muted align-middle ms-2" v-if="generatedLink">
                         Use <a v-bind:href="generatedLink">this link</a> to pre-populate @Constants.App.Name with the values above.
                     </span>
                 </div>
@@ -816,11 +376,9 @@
                 <div v-if="response.idToken">
                     <h5 class="mt-3">ID Token</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-idToken" v-model="response.idToken" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.idToken)"><i class="far fa-share-square"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-idToken" v-model="response.idToken" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.idToken)"><i class="far fa-share-square"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -834,11 +392,9 @@
                     <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
                     <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-accessToken" v-model="response.accessToken" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.accessToken)"><i class="far fa-share-square"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-accessToken" v-model="response.accessToken" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.accessToken)"><i class="far fa-share-square"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -850,10 +406,8 @@
                 <div v-if="response.refreshToken">
                     <h5 class="mt-3">Refresh Token</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-refreshToken" v-model="response.refreshToken" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-refreshToken" v-model="response.refreshToken" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                     </div>
                     <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
                 </div>
@@ -861,11 +415,9 @@
                 <div v-if="response.samlRequest">
                     <h5 class="mt-3">SAML Request</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-samlRequest" v-model="response.samlRequest" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="far fa-share-square"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-samlRequest" v-model="response.samlRequest" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="far fa-share-square"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -877,11 +429,9 @@
                 <div v-if="response.samlResponse">
                     <h5 class="mt-3">SAML Response</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-samlResponse" v-model="response.samlResponse" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="far fa-share-square"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-samlResponse" v-model="response.samlResponse" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="far fa-share-square"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -893,11 +443,9 @@
                 <div v-if="response.wsFederationResponse">
                     <h5 class="mt-3">WS-Federation Response</h5>
                     <div class="input-group mt-2">
-                        <input type="text" class="form-control text-monospace" id="response-wsFederationResponse" v-model="response.wsFederationResponse" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                            <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="far fa-share-square"></i></button>
-                        </div>
+                        <input type="text" class="form-control font-monospace" id="response-wsFederationResponse" v-model="response.wsFederationResponse" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="far fa-share-square"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -909,10 +457,8 @@
                 <div v-if="response.raw">
                     <h5 class="mt-3">Raw Response</h5>
                     <div class="input-group mt-2">
-                        <input type="textarea" class="form-control text-monospace" id="response-raw" v-model="response.raw" readonly>
-                        <div class="input-group-append">
-                            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        </div>
+                        <input type="textarea" class="form-control font-monospace" id="response-raw" v-model="response.raw" readonly>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                     </div>
                 </div>
 
@@ -922,17 +468,17 @@
                 <h5 class="mt-3">Flow</h5>
                 <div v-if="flow.requestType">Request type: <code>{{ flow.requestType }}</code></div>
                 <div v-if="flow.timeCreated">Started: <code>{{ flow.timeCreated | datetime }}</code></div>
-                <div>
-                    <input type="checkbox" id="flow-isComplete" v-model="flow.isComplete" disabled>
-                    <label class="form-check-label col-form-label ml-1" for="flow-isComplete">Flow has completed?</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="flow-isComplete" v-model="flow.isComplete" disabled>
+                    <label class="form-check-label" for="flow-isComplete">Flow has completed?</label>
                 </div>
 
                 <ol class="list-unstyled">
                     <li v-for="(request, requestIndex) in flow.requests">
                         <h5 class="mt-3">Request #<span>{{ requestIndex + 1 }}</span></h5>
-                        <div>
-                            <input type="checkbox" v-model="request.isInitiatedExternally" disabled>
-                            <label class="form-check-label col-form-label ml-1">Request was initiated externally?</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" v-model="request.isInitiatedExternally" disabled>
+                            <label class="form-check-label">Request was initiated externally?</label>
                         </div>
                         <div v-if="request.timeCreated">Sent: <code>{{ request.timeCreated | datetime }}</code></div>
                         <div v-if="request.requestedRedirectUrl">Requested Redirect URL: <code>{{ request.requestedRedirectUrl }}</code></div>
@@ -976,7 +522,7 @@
                 <h5 class="mt-3">Encoded Token</h5>
 
                 <div class="form-group mt-3">
-                    <textarea class="form-control text-monospace text-smaller" rows="10" v-model="encodedToken" placeholder="Enter the token here, which can be a JSON Web Token (JWT) or a SAML response. Note that this token is decoded on your device and will never leave your browser!"></textarea>
+                    <textarea class="form-control font-monospace text-smaller" rows="10" v-model="encodedToken" placeholder="Enter the token here, which can be a JSON Web Token (JWT) or a SAML response. Note that this token is decoded on your device and will never leave your browser!"></textarea>
                 </div>
 
                 <div v-if="parsedToken">
@@ -1005,7 +551,7 @@
 
                     <h5 class="mt-3">
                         Decoded Token
-                        <button type="button" class="btn btn-outline-secondary btn-copy ml-1 btn-sm" data-clipboard-target="#parsedToken-decodedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decodedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                     </h5>
                     <div class="card">
                         <div class="card-body">
@@ -1020,7 +566,7 @@
                         <div v-if="decryptedToken">
                             <h5 class="mt-3">
                                 Decrypted Token
-                                <button type="button" class="btn btn-outline-secondary btn-copy ml-1 btn-sm" data-clipboard-target="#parsedToken-decryptedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decryptedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
                             </h5>
                             <div class="card">
                                 <div class="card-body">
@@ -1040,15 +586,11 @@
                 <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-4">
                     <h6>Request Templates</h6>
                     <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfigurationEdit.requestTemplates">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text"><i class="far fa-file-alt mr-1" title="Request Template"></i> {{ requestTemplateIndex + 1 }}</span>
-                        </div>
+                        <span class="input-group-text"><i class="far fa-file-alt me-1" title="Request Template"></i> {{ requestTemplateIndex + 1 }}</span>
                         <input type="text" class="form-control" placeholder="Enter the name of the request template" v-model="requestTemplate.name">
-                        <div class="input-group-append">
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfigurationEdit.requestTemplates.length - 1"><i class="fas fa-chevron-down"></i></button>
-                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.requestTemplates, requestTemplate)" title="Delete this request template"><i class="far fa-trash-alt"></i></button>
-                        </div>
+                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="fas fa-chevron-up"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfigurationEdit.requestTemplates.length - 1"><i class="fas fa-chevron-down"></i></button>
+                        <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.requestTemplates, requestTemplate)" title="Delete this request template"><i class="far fa-trash-alt"></i></button>
                     </div>
                 </div>
 
@@ -1056,66 +598,58 @@
                     <h6>Identity Services</h6>
                     <div v-for="(identityService, identityServiceIndex) in userConfigurationEdit.identityServices">
                         <div class="input-group mt-3">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text"><i class="far fa-id-badge mr-1" title="Identity Service"></i> {{ identityServiceIndex + 1 }}</span>
-                            </div>
+                            <span class="input-group-text"><i class="far fa-id-badge me-1" title="Identity Service"></i> {{ identityServiceIndex + 1 }}</span>
                             <input type="text" class="form-control" placeholder="Enter the name of the Identity Service" v-model="identityService.name">
-                            <div class="input-group-append">
-                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="fas fa-pencil-alt"></i></button>
-                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfigurationEdit.identityServices.length - 1"><i class="fas fa-chevron-down"></i></button>
-                                <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.identityServices, identityService)" title="Delete this Identity Service"><i class="far fa-trash-alt"></i></button>
-                            </div>
+                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="fas fa-pencil-alt"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="fas fa-chevron-up"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfigurationEdit.identityServices.length - 1"><i class="fas fa-chevron-down"></i></button>
+                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.identityServices, identityService)" title="Delete this Identity Service"><i class="far fa-trash-alt"></i></button>
                         </div>
                         <div class="collapse" v-bind:id="'userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex">
                             <div class="card card-body">
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-authorizationEndpoint">Authorization Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-authorizationEndpoint">Authorization Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-authorizationEndpoint-' +  identityServiceIndex" v-model="identityService.authorizationEndpoint" placeholder="Enter the URL of the authorization endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-tokenEndpoint">Token Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-tokenEndpoint">Token Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-tokenEndpoint-' +  identityServiceIndex" v-model="identityService.tokenEndpoint" placeholder="Enter the URL of the token endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-deviceCodeEndpoint">Device Code Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-deviceCodeEndpoint">Device Code Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-deviceCodeEndpoint-' +  identityServiceIndex" v-model="identityService.deviceCodeEndpoint" placeholder="Enter the URL of the device code endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.samlSignOnEndpoint" placeholder="Enter the URL of the SAML sign-on endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-samlLogoutEndpoint">SAML Logout Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-samlLogoutEndpoint">SAML Logout Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-samlLogoutEndpoint-' +  identityServiceIndex" v-model="identityService.samlLogoutEndpoint" placeholder="Enter the URL of the SAML logout endpoint">
                                 </div>
                                 <div class="form-group">
-                                    <label for="userConfigurationEdit-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
+                                    <label class="form-label" for="userConfigurationEdit-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-wsFederationSignOnEndpoint-' +  identityServiceIndex" v-model="identityService.wsFederationSignOnEndpoint" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
                                 </div>
                                 <h6 class="mt-2">Client Apps</h6>
                                 <div>
                                     <div v-for="(clientApplication, clientApplicationIndex) in identityService.clientApplications">
                                         <div class="mt-3 input-group">
-                                            <div class="input-group-prepend">
-                                                <span class="input-group-text"><i class="fas fa-mobile-alt mr-1" title="Client App"></i> {{ clientApplicationIndex + 1 }}</span>
-                                            </div>
+                                            <span class="input-group-text"><i class="fas fa-mobile-alt me-1" title="Client App"></i> {{ clientApplicationIndex + 1 }}</span>
                                             <input type="text" class="form-control" placeholder="Enter the name of the Client Application" v-model="clientApplication.name">
-                                            <div class="input-group-append">
-                                                <button class="btn btn-outline-secondary" type="button" data-toggle="collapse" v-bind:data-target="'#userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="fas fa-pencil-alt"></i></button>
-                                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(identityService.clientApplications, clientApplication)" title="Move this Client Application up in the list" v-bind:disabled="clientApplicationIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                                                <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(identityService.clientApplications, clientApplication)" title="Move this Client Application down in the list" v-bind:disabled="clientApplicationIndex === identityService.clientApplications.length - 1"><i class="fas fa-chevron-down"></i></button>
-                                                <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(identityService.clientApplications, clientApplication)" title="Delete this Client Application"><i class="far fa-trash-alt"></i></button>
-                                            </div>
+                                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="fas fa-pencil-alt"></i></button>
+                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(identityService.clientApplications, clientApplication)" title="Move this Client Application up in the list" v-bind:disabled="clientApplicationIndex === 0"><i class="fas fa-chevron-up"></i></button>
+                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(identityService.clientApplications, clientApplication)" title="Move this Client Application down in the list" v-bind:disabled="clientApplicationIndex === identityService.clientApplications.length - 1"><i class="fas fa-chevron-down"></i></button>
+                                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(identityService.clientApplications, clientApplication)" title="Delete this Client Application"><i class="far fa-trash-alt"></i></button>
                                         </div>
                                         <div class="collapse" v-bind:id="'userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex">
                                             <div class="card card-body">
                                                 <div class="form-group">
-                                                    <label for="userConfigurationEdit-clientId">Client ID</label>
+                                                    <label class="form-label" for="userConfigurationEdit-clientId">Client ID</label>
                                                     <input type="text" class="form-control" v-bind:id="'userConfigurationEdit-clientId-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientId" placeholder="Enter the client id of the app registered with the identity service">
                                                 </div>
                                                 <div class="form-group">
-                                                    <label for="userConfigurationEdit-clientSecret">Client Secret</label>
+                                                    <label class="form-label" for="userConfigurationEdit-clientSecret">Client Secret</label>
                                                     <input type="password" class="form-control" v-bind:id="'userConfigurationEdit-clientSecret-' +  identityServiceIndex + '-' + clientApplicationIndex" v-model="clientApplication.clientSecret" placeholder="Enter the client secret of the app registered with the identity service">
                                                 </div>
                                             </div>
