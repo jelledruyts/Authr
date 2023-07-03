@@ -41,7 +41,7 @@
                             <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant Azure AD application:
                             <div class="input-group input-group-sm mt-2">
                                 <input type="text" class="form-control font-monospace" id="clientid-aad-mt" value="fb859816-0967-41eb-a59f-6a525d3fda8e" readonly>
-                                <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
                             </div>
                         </div>
                     </div>
@@ -67,7 +67,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" v-on:click="performIdentityServiceImport()" v-bind:disabled="processing">Import <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                <button type="button" class="btn btn-primary" v-on:click="performIdentityServiceImport()" v-bind:disabled="processing">Import <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
             </div>
         </div>
     </div>

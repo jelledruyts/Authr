@@ -102,7 +102,7 @@
                         </div>
 
                         <div class="form-group" v-if="requestParameters.identityServiceId === null">
-                            <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('request')"><i class="fas fa-file-import"></i> Import...</button>
+                            <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('request')"><i class="bi bi-box-arrow-in-down-right"></i> Import...</button>
                         </div>
 
                         <div class="form-group">
@@ -332,7 +332,7 @@
                                 </div>
                             </div>
                             <div class="text-muted small">
-                                <i class="fas fa-exclamation-triangle"></i>
+                               <i class="bi bi-exclamation-triangle-fill"></i>
                                 Although the data you save is encrypted at rest, it's not recommended to save production client secrets or other confidential information.
                             </div>
                         </div>
@@ -343,17 +343,16 @@
                     <div class="alert alert-warning">{{ validationMessage }}</div>
                 </div>
 
-                <button id="submitRequestButton" v-on:click="submitRequest()" class="btn btn-primary mt-3" v-bind:disabled="processing" type="button">Submit <i class="fas fa-sign-in-alt"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
-
-                <div v-if="errorMessage" class="mt-2">
-                    <div class="alert alert-danger">{{ errorMessage }}</div>
-                </div>
-
                 <div class="form-group mt-3">
-                    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="btn btn-sm btn-outline-secondary" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="fas fa-link"></i> <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                    <button id="submitRequestButton" v-on:click="submitRequest()" class="btn btn-primary" v-bind:disabled="processing" type="button">Submit <i class="bi bi-arrow-right-circle"></i> <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
+                    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="btn btn-outline-secondary ms-2" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="bi bi-share"></i> <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
                     <span class="text-muted align-middle ms-2" v-if="generatedLink">
                         Use <a v-bind:href="generatedLink">this link</a> to pre-populate @Constants.App.Name with the values above.
                     </span>
+                </div>
+
+                <div v-if="errorMessage" class="mt-2">
+                    <div class="alert alert-danger">{{ errorMessage }}</div>
                 </div>
 
             </div>
@@ -377,8 +376,8 @@
                     <h5 class="mt-3">ID Token</h5>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-idToken" v-model="response.idToken" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.idToken)"><i class="far fa-share-square"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.idToken)"><i class="bi bi-box-arrow-up-right"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -393,8 +392,8 @@
                     <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-accessToken" v-model="response.accessToken" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.accessToken)"><i class="far fa-share-square"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.accessToken)"><i class="bi bi-box-arrow-up-right"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -407,7 +406,7 @@
                     <h5 class="mt-3">Refresh Token</h5>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-refreshToken" v-model="response.refreshToken" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
                     </div>
                     <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
                 </div>
@@ -416,8 +415,8 @@
                     <h5 class="mt-3">SAML Request</h5>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-samlRequest" v-model="response.samlRequest" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="far fa-share-square"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="bi bi-box-arrow-up-right"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -430,8 +429,8 @@
                     <h5 class="mt-3">SAML Response</h5>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-samlResponse" v-model="response.samlResponse" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="far fa-share-square"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="bi bi-box-arrow-up-right"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -444,8 +443,8 @@
                     <h5 class="mt-3">WS-Federation Response</h5>
                     <div class="input-group mt-2">
                         <input type="text" class="form-control font-monospace" id="response-wsFederationResponse" v-model="response.wsFederationResponse" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="far fa-copy"></i></button>
-                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="far fa-share-square"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+                        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="bi bi-box-arrow-up-right"></i></button>
                     </div>
                     <div class="card">
                         <div class="card-body">
@@ -458,7 +457,7 @@
                     <h5 class="mt-3">Raw Response</h5>
                     <div class="input-group mt-2">
                         <input type="textarea" class="form-control font-monospace" id="response-raw" v-model="response.raw" readonly>
-                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
                     </div>
                 </div>
 
@@ -551,7 +550,7 @@
 
                     <h5 class="mt-3">
                         Decoded Token
-                        <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decodedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                        <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decodedToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
                     </h5>
                     <div class="card">
                         <div class="card-body">
@@ -566,7 +565,7 @@
                         <div v-if="decryptedToken">
                             <h5 class="mt-3">
                                 Decrypted Token
-                                <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decryptedToken" title="Copy to clipboard"><i class="far fa-copy"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-copy ms-1 btn-sm" data-clipboard-target="#parsedToken-decryptedToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
                             </h5>
                             <div class="card">
                                 <div class="card-body">
@@ -586,11 +585,11 @@
                 <div v-if="userConfigurationEdit.requestTemplates.length > 0" class="mt-4">
                     <h6>Request Templates</h6>
                     <div class="input-group mt-3" v-for="(requestTemplate, requestTemplateIndex) in userConfigurationEdit.requestTemplates">
-                        <span class="input-group-text"><i class="far fa-file-alt me-1" title="Request Template"></i> {{ requestTemplateIndex + 1 }}</span>
+                        <span class="input-group-text"><i class="bi bi-file-earmark-text me-1" title="Request Template"></i> {{ requestTemplateIndex + 1 }}</span>
                         <input type="text" class="form-control" placeholder="Enter the name of the request template" v-model="requestTemplate.name">
-                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfigurationEdit.requestTemplates.length - 1"><i class="fas fa-chevron-down"></i></button>
-                        <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.requestTemplates, requestTemplate)" title="Delete this request template"><i class="far fa-trash-alt"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template up in the list" v-bind:disabled="requestTemplateIndex === 0"><i class="bi bi-chevron-up"></i></button>
+                        <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.requestTemplates, requestTemplate)" title="Move this request template down in the list" v-bind:disabled="requestTemplateIndex === userConfigurationEdit.requestTemplates.length - 1"><i class="bi bi-chevron-down"></i></button>
+                        <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.requestTemplates, requestTemplate)" title="Delete this request template"><i class="bi bi-trash"></i></button>
                     </div>
                 </div>
 
@@ -598,12 +597,12 @@
                     <h6>Identity Services</h6>
                     <div v-for="(identityService, identityServiceIndex) in userConfigurationEdit.identityServices">
                         <div class="input-group mt-3">
-                            <span class="input-group-text"><i class="far fa-id-badge me-1" title="Identity Service"></i> {{ identityServiceIndex + 1 }}</span>
+                            <span class="input-group-text"><i class="bi bi-file-person me-1" title="Identity Service"></i> {{ identityServiceIndex + 1 }}</span>
                             <input type="text" class="form-control" placeholder="Enter the name of the Identity Service" v-model="identityService.name">
-                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfigurationEdit.identityServices.length - 1"><i class="fas fa-chevron-down"></i></button>
-                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.identityServices, identityService)" title="Delete this Identity Service"><i class="far fa-trash-alt"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex" title="Edit this Identity Service"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service up in the list" v-bind:disabled="identityServiceIndex === 0"><i class="bi bi-chevron-up"></i></button>
+                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(userConfigurationEdit.identityServices, identityService)" title="Move this Identity Service down in the list" v-bind:disabled="identityServiceIndex === userConfigurationEdit.identityServices.length - 1"><i class="bi bi-chevron-down"></i></button>
+                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(userConfigurationEdit.identityServices, identityService)" title="Delete this Identity Service"><i class="bi bi-trash"></i></button>
                         </div>
                         <div class="collapse" v-bind:id="'userConfigurationEdit-identityServiceDetails-' +  identityServiceIndex">
                             <div class="card card-body">
@@ -635,12 +634,12 @@
                                 <div>
                                     <div v-for="(clientApplication, clientApplicationIndex) in identityService.clientApplications">
                                         <div class="mt-3 input-group">
-                                            <span class="input-group-text"><i class="fas fa-mobile-alt me-1" title="Client App"></i> {{ clientApplicationIndex + 1 }}</span>
+                                            <span class="input-group-text"><i class="bi bi-window me-1" title="Client App"></i> {{ clientApplicationIndex + 1 }}</span>
                                             <input type="text" class="form-control" placeholder="Enter the name of the Client Application" v-model="clientApplication.name">
-                                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="fas fa-pencil-alt"></i></button>
-                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(identityService.clientApplications, clientApplication)" title="Move this Client Application up in the list" v-bind:disabled="clientApplicationIndex === 0"><i class="fas fa-chevron-up"></i></button>
-                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(identityService.clientApplications, clientApplication)" title="Move this Client Application down in the list" v-bind:disabled="clientApplicationIndex === identityService.clientApplications.length - 1"><i class="fas fa-chevron-down"></i></button>
-                                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(identityService.clientApplications, clientApplication)" title="Delete this Client Application"><i class="far fa-trash-alt"></i></button>
+                                            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" v-bind:data-bs-target="'#userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex" title="Edit this Client Application"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemUp(identityService.clientApplications, clientApplication)" title="Move this Client Application up in the list" v-bind:disabled="clientApplicationIndex === 0"><i class="bi bi-chevron-up"></i></button>
+                                            <button class="btn btn-outline-secondary" type="button" v-on:click="moveItemDown(identityService.clientApplications, clientApplication)" title="Move this Client Application down in the list" v-bind:disabled="clientApplicationIndex === identityService.clientApplications.length - 1"><i class="bi bi-chevron-down"></i></button>
+                                            <button class="btn btn-outline-danger" type="button" v-on:click="deleteItem(identityService.clientApplications, clientApplication)" title="Delete this Client Application"><i class="bi bi-trash"></i></button>
                                         </div>
                                         <div class="collapse" v-bind:id="'userConfigurationEdit-clientApplicationDetails-' +  identityServiceIndex + '-' + clientApplicationIndex">
                                             <div class="card card-body">
@@ -655,18 +654,18 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn btn-secondary mt-3" type="button" v-on:click="addClientApplication(identityService.clientApplications)"><i class="fas fa-plus"></i> Add Client App</button>
+                                    <button class="btn btn-secondary mt-3" type="button" v-on:click="addClientApplication(identityService.clientApplications)"><i class="bi bi-plus-lg"></i> Add Client App</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="mt-3">
-                        <button type="button" class="btn btn-secondary" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="fas fa-plus"></i> Add Identity Service</button>
-                        <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('configuration')"><i class="fas fa-file-import"></i> Import Identity Service...</button>
+                        <button type="button" class="btn btn-secondary" v-on:click="addIdentityService(userConfigurationEdit.identityServices)"><i class="bi bi-plus-lg"></i> Add Identity Service</button>
+                        <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog('configuration')"><i class="bi bi-box-arrow-in-down-right"></i> Import Identity Service...</button>
                     </div>
                 </div>
 
-                <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-4" v-bind:disabled="processing" type="button"><i class="fas fa-save"></i> Save Configuration <i v-if="processing" class="fas fa-spinner fa-spin"></i></button>
+                <button v-on:click="saveUserConfiguration()" class="btn btn-primary mt-4" v-bind:disabled="processing" type="button"><i class="bi bi-save"></i> Save Configuration <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
 
             </div>
         </div>
