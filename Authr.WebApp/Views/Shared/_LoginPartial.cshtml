@@ -2,6 +2,17 @@
 @inject IConfiguration Configuration
 
 <div class="navbar-nav">
+    <div class="nav-item dropdown">
+        <button class="nav-link dropdown-toggle" role="button" id="bs-theme" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-moon-stars-fill" id="bs-theme-icon-active"></i>
+            <span class="d-lg-none ms-2" id="bs-theme-text">Toggle theme</span>
+        </button>
+        <ul class="dropdown-menu">
+            <li><button type="button" class="nav-link" data-bs-theme-value="light"><i class="bi bi-sun-fill"></i> Light</button></li>
+            <li><button type="button" class="nav-link" data-bs-theme-value="dark"><i class="bi bi-moon-stars-fill"></i> Dark</button></li>
+            <li><button type="button" class="nav-link" data-bs-theme-value="auto"><i class="bi bi-circle-half"></i> Auto</button></li>
+        </ul>
+    </div>
 @if (User.Identity.IsAuthenticated)
 {
         @if (!string.IsNullOrEmpty(Configuration["AzureAdB2C:EditProfilePolicyId"]))
