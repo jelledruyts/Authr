@@ -57,6 +57,19 @@ namespace Authr.WebApp.Controllers
             return View();
         }
 
+        [Route(nameof(Token))]
+        public IActionResult Token()
+        {
+            return View();
+        }
+
+        [Route(nameof(Configuration))]
+        public async Task<IActionResult> Configuration()
+        {
+            var model = await this.userConfigurationHandler.GetUserConfigurationAsync(this.User.GetUserId());
+            return View(model);
+        }
+
         [Route(nameof(Privacy))]
         public IActionResult Privacy()
         {

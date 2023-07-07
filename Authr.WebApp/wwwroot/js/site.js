@@ -298,13 +298,25 @@
             isEncrypted: isEncrypted
         };
     }
-})(window.Authr = window.Authr || {});
 
-// Set up.
-toastr.options = {
-    'showMethod': 'show',
-    'hideMethod': 'hide'
-};
+    Authr.formatDecodedToken = function (decodedToken) {
+        if (decodedToken) {
+            if (decodedToken.tokenType === 'JWT' && decodedToken.header && decodedToken.body) {
+                return JSON.stringify(decodedToken.header, null, 2) + '.' + JSON.stringify(decodedToken.body, null, 2);
+            }
+            if (decodedToken.tokenType === 'SAML' && decodedToken.body) {
+                return decodedToken.body;
+            }
+            return decodedToken;
+        }
+        return 'Invalid token';
+    }
+
+    Authr.showToast = function (message) {
+        document.getElementById('toastMessageText').innerText = message;
+        bootstrap.Toast.getOrCreateInstance(document.getElementById('toastMessage')).show();
+    }
+})(window.Authr = window.Authr || {});
 
 new ClipboardJS('.btn-copy');
 
