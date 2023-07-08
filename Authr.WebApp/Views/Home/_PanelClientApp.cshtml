@@ -1,0 +1,20 @@
+<div id="clientApp-panel" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+    <div class="card-header">Client App</div>
+    <div class="card-body">
+        <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
+            <select class="form-select" id="requestParameters-clientApplicationId" v-model="requestParameters.clientApplicationId">
+                <option v-bind:value="null">Custom</option>
+                <option v-for="clientApplication in selectedIdentityService.clientApplications" v-bind:value="clientApplication.id">{{ clientApplication.name }}</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-clientId">Client ID</label>
+            <input type="text" class="form-control" id="requestParameters-clientId" v-model="requestParameters.clientId" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="Enter the client id of the app registered with the identity service">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-clientSecret">Client Secret</label>
+            <input type="password" class="form-control" id="requestParameters-clientSecret" v-model="requestParameters.clientSecret" v-bind:readonly="requestParameters.clientApplicationId !== null" placeholder="Enter the client secret of the app registered with the identity service">
+        </div>
+    </div>
+</div>

@@ -4,17 +4,20 @@
 
 .footer {
   font-size: smaller;
-  /* Vertically center the text there */
+  /* Vertically center the text */
   line-height: 60px;
 }
 
+/* Hide cloaked elements until Vue is ready */
 [v-cloak] {
   display: none;
 }
 
+/* Make readonly controls look like disabled controls (but still allow their contents to be selected) */
 .form-control[readonly] {
   background-color: #e9ecef;
 }
+
 html[data-bs-theme='dark'] .form-control[readonly] {
   background-color: #343a40;
 }

@@ -1,0 +1,40 @@
+<div id="identityService-panel" class="card mt-3">
+    <div class="card-header">Identity Service</div>
+    <div class="card-body">
+        <div class="form-group" v-if="userSignedIn && userConfiguration.identityServices.length > 0">
+            <select class="form-select" id="requestParameters-identityServiceId" v-model="requestParameters.identityServiceId">
+                <option v-bind:value="null">Custom</option>
+                <option v-for="identityService in userConfiguration.identityServices" v-bind:value="identityService.id">{{ identityService.name }}</option>
+            </select>
+        </div>
+
+        <div class="form-group" v-if="requestParameters.identityServiceId === null">
+            <button type="button" class="btn btn-secondary" v-on:click="showIdentityServiceImportDialog()"><i class="bi bi-box-arrow-in-down-right"></i> Import...</button>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-authorizationEndpoint">Authorization Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-authorizationEndpoint" v-model="requestParameters.authorizationEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the authorization endpoint">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-tokenEndpoint">Token Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-tokenEndpoint" v-model="requestParameters.tokenEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the token endpoint">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-deviceCodeEndpoint">Device Code Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-deviceCodeEndpoint" v-model="requestParameters.deviceCodeEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the device code endpoint">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-samlSignOnEndpoint">SAML Sign-On Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-samlSignOnEndpoint" v-model="requestParameters.samlSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML sign-on endpoint">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-samlLogoutEndpoint">SAML Logout Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-samlLogoutEndpoint" v-model="requestParameters.samlLogoutEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the SAML logout endpoint">
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="requestParameters-wsFederationSignOnEndpoint">WS-Federation Sign-On Endpoint</label>
+            <input type="text" class="form-control" id="requestParameters-wsFederationSignOnEndpoint" v-model="requestParameters.wsFederationSignOnEndpoint" v-bind:readonly="requestParameters.identityServiceId !== null" placeholder="Enter the URL of the WS-Federation sign-on endpoint">
+        </div>
+    </div>
+</div>

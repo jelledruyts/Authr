@@ -1,0 +1,45 @@
+<div id="save-panel" class="card mt-3">
+    <div class="card-header">Save to your configuration for later</div>
+    <div class="card-body">
+        <div v-if="!userSignedIn" class="card-text">Please <a asp-area="AzureADB2C" asp-controller="Account" asp-action="SignIn">sign in</a> if you want to save these details and easily use them again later.</div>
+        <div v-if="userSignedIn" class="form-group">
+            <div class="form-group row mt-2">
+                <div class="col-sm-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="saveRequestTemplate" v-model="requestOptions.saveRequestTemplate">
+                        <label class="form-check-label" for="saveRequestTemplate">Request Template</label>
+                    </div>
+                </div>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" placeholder="Enter the name of the request template to save this as" v-bind:disabled="!requestOptions.saveRequestTemplate" v-model="requestOptions.saveRequestTemplateAsName">
+                </div>
+            </div>
+            <div class="form-group row mt-2">
+                <div class="col-sm-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="saveIdentityService" v-model="requestOptions.saveIdentityService">
+                        <label class="form-check-label" for="saveIdentityService">Identity Service</label>
+                    </div>
+                </div>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" placeholder="Enter the name of the Identity Service to save this as" v-bind:disabled="!requestOptions.saveIdentityService" v-model="requestOptions.saveIdentityServiceAsName" required>
+                </div>
+            </div>
+            <div class="form-group row mt-2">
+                <div class="col-sm-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="saveClientApplication" v-model="requestOptions.saveClientApplication" v-bind:disabled="!(requestOptions.saveIdentityService || requestParameters.identityServiceId !== null)">
+                        <label class="form-check-label" for="saveClientApplication">Client App</label>
+                    </div>
+                </div>
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" placeholder="Enter the name of the Client App to save this as" v-bind:disabled="!requestOptions.saveClientApplication" v-model="requestOptions.saveClientApplicationAsName">
+                </div>
+            </div>
+            <div class="text-muted small">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Although the data you save is encrypted at rest, it's not recommended to save production client secrets or other confidential information.
+            </div>
+        </div>
+    </div>
+</div>

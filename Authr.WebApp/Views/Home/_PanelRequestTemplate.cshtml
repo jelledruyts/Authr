@@ -1,0 +1,11 @@
+<div id="requestTemplate-panel" class="card mt-3" v-if="userSignedIn && userConfiguration.requestTemplates.length > 0">
+    <div class="card-header">Request Template</div>
+    <div class="card-body">
+        <div class="form-group">
+            <select class="form-select" id="requestTemplateId" v-model="requestTemplateId">
+                <option v-bind:value="null">None</option>
+                <option v-for="requestTemplate in userConfiguration.requestTemplates" v-bind:value="requestTemplate.id">{{ requestTemplate.name }}</option>
+            </select>
+        </div>
+    </div>
+</div>

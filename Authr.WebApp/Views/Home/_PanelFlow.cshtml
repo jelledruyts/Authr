@@ -1,0 +1,51 @@
+<h5 class="mt-3">Flow</h5>
+
+<div v-if="flow.requestType">Request type: <code>{{ flow.requestType }}</code></div>
+<div v-if="flow.timeCreated">Started: <code>{{ flow.timeCreated | datetime }}</code></div>
+<div class="form-check">
+    <input class="form-check-input" type="checkbox" id="flow-isComplete" v-model="flow.isComplete" disabled>
+    <label class="form-check-label" for="flow-isComplete">Flow has completed?</label>
+</div>
+
+<ol class="list-unstyled">
+    <li v-for="(request, requestIndex) in flow.requests">
+        <h5 class="mt-3">Request #<span>{{ requestIndex + 1 }}</span></h5>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" v-model="request.isInitiatedExternally" disabled>
+            <label class="form-check-label">Request was initiated externally?</label>
+        </div>
+        <div v-if="request.timeCreated">Sent: <code>{{ request.timeCreated | datetime }}</code></div>
+        <div v-if="request.requestedRedirectUrl">Requested Redirect URL: <code>{{ request.requestedRedirectUrl }}</code></div>
+        <div v-if="request.parameters">
+            <div>Parameters:</div>
+            <div class="card">
+                <div class="card-body">
+                    <pre><code>{{ request.parameters }}</code></pre>
+                </div>
+            </div>
+        </div>
+        <div v-if="request.requestMessage">
+            <div>Request Message:</div>
+            <div class="card">
+                <div class="card-body">
+                    <pre><code>{{ request.requestMessage }}</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="request.response">
+            <h5 class="mt-3">Response #<span>{{ requestIndex + 1 }}</span></h5>
+            <div v-if="request.response.timeCreated">Received: <code>{{ request.response.timeCreated | datetime }}</code></div>
+            <div class="card">
+                <div class="card-body">
+                    <pre><code>{{ request.response }}</code></pre>
+                </div>
+            </div>
+        </div>
+    </li>
+</ol>
+
+<div v-if="flow.timeCompleted">
+    <h5 class="mt-3">End</h5>
+    <div>Completed: <code>{{ flow.timeCompleted | datetime }}</code></div>
+</div>

@@ -1,0 +1,7 @@
+<div class="form-group mt-3">
+    <button id="submitRequestButton" v-on:click="submitRequest()" class="btn btn-primary" v-bind:disabled="processing" type="button">Submit <i class="bi bi-arrow-right-circle"></i> <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
+    <button id="generateLinkButton" v-on:click="submitRequest('@Constants.RequestActions.GenerateLink')" class="btn btn-outline-secondary ms-2" v-bind:disabled="processing" type="button" title="Generates a link with all the above form values pre-populated">Generate Link <i class="bi bi-share"></i> <span v-if="processing" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></button>
+    <span class="text-muted align-middle ms-2" v-if="generatedLink">
+        Use <a v-bind:href="generatedLink">this link</a> to pre-populate @Constants.App.Name with the values above.
+    </span>
+</div>

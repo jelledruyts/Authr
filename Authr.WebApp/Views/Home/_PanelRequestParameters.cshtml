@@ -1,0 +1,139 @@
+<div id="requestParameters-panel" class="card mt-3">
+    <div class="card-header">Request Parameters</div>
+    <div class="card-body">
+        <div class="form-group" v-if="requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant'">
+            <label class="form-label" for="requestParameters-grantType">Grant Type</label>
+            <input type="text" class="form-control" id="requestParameters-grantType" v-model="requestParameters.grantType" placeholder="Enter the grant type">
+        </div>
+
+        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.OAuth2CustomGrant' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+            <label class="form-label" for="requestParameters-scope">Scope (e.g. '<code>openid</code>', '<code>profile</code>', '<code>email</code>', '<code>address</code>', '<code>phone</code>', '<code>offline_access</code>')</label>
+            <input type="text" class="form-control" id="requestParameters-scope" v-model="requestParameters.scope" placeholder="Enter the scope to request">
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-responseType">Response Type (e.g. '<code>id_token</code>', '<code>token</code>', '<code>code</code>', '<code>code token</code>', '<code>code id_token</code>', '<code>id_token token</code>', '<code>code id_token token</code>')</label>
+                <input type="text" class="form-control" id="requestParameters-responseType" v-model="requestParameters.responseType" placeholder="Enter the response type">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-responseMode">Response Mode (e.g. '<code>form_post</code>', '<code>query</code>', '<code>fragment</code>')</label>
+                <input type="text" class="form-control" id="requestParameters-responseMode" v-model="requestParameters.responseMode" placeholder="Enter the response mode">
+            </div>
+        </div>
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.Implicit' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'  || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-redirectUri">Redirect URI</label>
+                <input type="text" class="form-control" id="requestParameters-redirectUri" v-model="requestParameters.redirectUri" placeholder="Enter the redirect URI (reply URL) where to send the authentication response after completion">
+            </div>
+        </div>
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OpenIdConnect' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode'">
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requestParameters-usePkce" v-model="requestParameters.usePkce">
+                    <label class="form-check-label" for="requestParameters-usePkce">Use Proof Key for Code Exchange (PKCE)</label>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-refreshToken">Refresh Token</label>
+                <input type="text" class="form-control" id="requestParameters-refreshToken" v-model="requestParameters.refreshToken" placeholder="Enter the refresh token">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.DeviceToken'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-deviceCode">Device Code</label>
+                <input type="text" class="form-control" id="requestParameters-deviceCode" v-model="requestParameters.deviceCode" placeholder="Enter the device code">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-userName">User Name</label>
+                <input type="text" class="form-control" id="requestParameters-userName" v-model="requestParameters.userName" placeholder="Enter the user name of the resource owner">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-password">Password</label>
+                <input type="password" class="form-control" id="requestParameters-password" v-model="requestParameters.password" placeholder="Enter the password of the resource owner">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.OnBehalfOf'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-userName">Assertion</label>
+                <input type="text" class="form-control" id="requestParameters-assertion" v-model="requestParameters.assertion" placeholder="Enter the assertion, i.e. the access token on behalf of which to request a new token">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-samlServiceProviderIdentifier">Service Provider Identifier</label>
+                <input type="text" class="form-control" id="requestParameters-samlServiceProviderIdentifier" v-model="requestParameters.samlServiceProviderIdentifier" placeholder="Enter the identifier of the Service Provider, i.e. the application you want to sign in to">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest'">
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requestParameters-forceAuthentication" v-model="requestParameters.forceAuthentication">
+                    <label class="form-check-label" for="requestParameters-forceAuthentication">Force Authentication</label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requestParameters-silentAuthentication" v-model="requestParameters.silentAuthentication">
+                    <label class="form-check-label" for="requestParameters-silentAuthentication">Is Passive</label>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-nameId">Name ID</label>
+                <input type="text" class="form-control" id="requestParameters-nameId" v-model="requestParameters.nameId" placeholder="Enter the Name ID of the principal that needs to be logged out">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-sessionIndex">Session Index</label>
+                <input type="text" class="form-control" id="requestParameters-sessionIndex" v-model="requestParameters.sessionIndex" placeholder="Enter the session identifier that needs to be logged out">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' ">
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requestParameters-signRequest" v-model="requestParameters.signRequest">
+                    <label class="form-check-label" for="requestParameters-signRequest">Sign Request</label>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+            <div class="form-group">
+                <label class="form-label" for="requestParameters-wsFederationRealmIdentifier">Realm Identifier</label>
+                <input type="text" class="form-control" id="requestParameters-wsFederationRealmIdentifier" v-model="requestParameters.wsFederationRealmIdentifier" placeholder="Enter the identifier of the realm, i.e. the application you want to sign in to">
+            </div>
+        </div>
+
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.Saml2AuthnRequest' || requestParameters.requestType === '@Constants.RequestTypes.Saml2LogoutRequest' || requestParameters.requestType === '@Constants.RequestTypes.WsFederationSignIn'">
+            <div class="form-group">
+                <div class="form-check-inline">Request Binding:</div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpRedirect" value="@Constants.RequestMethods.HttpRedirect" v-model="requestParameters.requestMethod">
+                    <label class="form-check-label" for="requestParameters-requestMethod-httpRedirect">HTTP Redirect</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="requestParameters-requestMethod" id="requestParameters-requestMethod-httpPost" value="@Constants.RequestMethods.HttpPost" v-model="requestParameters.requestMethod">
+                    <label class="form-check-label" for="requestParameters-requestMethod-httpPost">HTTP POST</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest'">
+            <label class="form-label" for="requestParameters-additionalParameters">Additional Parameters</label>
+            <textarea class="form-control" id="requestParameters-additionalParameters" v-model="requestParameters.additionalParameters" placeholder="Enter any additional parameters to pass to the identity service in query string format (key1=value1&amp;key2=value2...); optionally use new lines instead of ampersands (&amp;)" rows="3"></textarea>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,102 @@
+<div v-if="response.error">
+    <h5 class="mt-3">Error</h5>
+    <div class="alert alert-danger">
+        <h4 class="alert-heading">{{ response.error }}</h4>
+        <div v-if="response.errorDescription">{{ response.errorDescription }}</div>
+    </div>
+</div>
+
+<div v-if="response.deviceCode">
+    <h5 class="mt-3">Device Code</h5>
+    <div>To sign in, use a web browser to open the page <a v-bind:href="response.deviceCodeVerificationUri" target="_blank">{{ response.deviceCodeVerificationUri }}</a> and enter the code <code>{{ response.deviceUserCode }}</code> to authenticate.</div>
+    <button v-on:click="prepareDeviceTokenRequestParameters(response.deviceCode)" class="btn btn-primary mt-2" type="button">Prepare Device Token Request</button>
+</div>
+
+<div v-if="response.idToken">
+    <h5 class="mt-3">ID Token</h5>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-idToken" v-model="response.idToken" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-idToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.idToken)"><i class="bi bi-box-arrow-up-right"></i></button>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <pre><code>{{ decodeToken(response.idToken) | token }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<div v-if="response.accessToken">
+    <h5 class="mt-3">Access Token</h5>
+    <div v-if="response.tokenType">Token Type: <code>{{ response.tokenType }}</code></div>
+    <div v-if="response.expiresIn">Expires In: <code>{{ response.expiresIn }}</code></div>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-accessToken" v-model="response.accessToken" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-accessToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.accessToken)"><i class="bi bi-box-arrow-up-right"></i></button>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <pre><code>{{ decodeToken(response.accessToken) | token }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<div v-if="response.refreshToken">
+    <h5 class="mt-3">Refresh Token</h5>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-refreshToken" v-model="response.refreshToken" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-refreshToken" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+    </div>
+    <button v-on:click="prepareRefreshTokenRequestParameters(response.refreshToken)" class="btn btn-primary mt-2" type="button">Prepare Refresh Token Request</button>
+</div>
+
+<div v-if="response.samlRequest">
+    <h5 class="mt-3">SAML Request</h5>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-samlRequest" v-model="response.samlRequest" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlRequest" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlRequest)"><i class="bi bi-box-arrow-up-right"></i></button>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <pre><code>{{ decodeToken(response.samlRequest) | token }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<div v-if="response.samlResponse">
+    <h5 class="mt-3">SAML Response</h5>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-samlResponse" v-model="response.samlResponse" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-samlResponse" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.samlResponse)"><i class="bi bi-box-arrow-up-right"></i></button>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <pre><code>{{ decodeToken(response.samlResponse) | token }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<div v-if="response.wsFederationResponse">
+    <h5 class="mt-3">WS-Federation Response</h5>
+    <div class="input-group mt-2">
+        <input type="text" class="form-control font-monospace" id="response-wsFederationResponse" v-model="response.wsFederationResponse" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-wsFederationResponse" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+        <button type="button" class="btn btn-outline-secondary" title="Decode token" v-on:click="sendToTokenDecoder(response.wsFederationResponse)"><i class="bi bi-box-arrow-up-right"></i></button>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <pre><code>{{ decodeToken(response.wsFederationResponse) | token }}</code></pre>
+        </div>
+    </div>
+</div>
+
+<div v-if="response.raw">
+    <h5 class="mt-3">Raw Response</h5>
+    <div class="input-group mt-2">
+        <input type="textarea" class="form-control font-monospace" id="response-raw" v-model="response.raw" readonly>
+        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#response-raw" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+    </div>
+</div>
