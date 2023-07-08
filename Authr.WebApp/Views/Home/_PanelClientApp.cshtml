@@ -1,4 +1,4 @@
-<div id="clientApp-panel" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
+<div id="client-app" class="card mt-3" v-if="requestParameters.requestType !== '@Constants.RequestTypes.Saml2AuthnRequest' && requestParameters.requestType !== '@Constants.RequestTypes.Saml2LogoutRequest' && requestParameters.requestType !== '@Constants.RequestTypes.WsFederationSignIn'">
     <div class="card-header">Client App</div>
     <div class="card-body">
         <div class="form-group" v-if="userSignedIn && selectedIdentityService != null && selectedIdentityService.clientApplications.length > 0">
