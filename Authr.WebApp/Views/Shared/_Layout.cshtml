@@ -28,13 +28,13 @@
                 </button>
                 <div class="collapse navbar-collapse">
                     <div class="navbar-nav flex-grow-1">
-                        <a class="nav-link" asp-controller="Home" asp-action="Index">Request</a>
-                        <a class="nav-link" asp-controller="Home" asp-action="Token">Decode Token</a>
+                        <a class="nav-link @(this.ViewContext.View.Path.StartsWith("/Views/Home/Index.cshtml", StringComparison.OrdinalIgnoreCase) ? "active": "")" asp-controller="Home" asp-action="Index">New Request</a>
+                        <a class="nav-link @(this.ViewContext.View.Path.StartsWith("/Views/Home/Token.cshtml", StringComparison.OrdinalIgnoreCase) ? "active": "")" asp-controller="Home" asp-action="Token">Decode Token</a>
                         @if (User.Identity.IsAuthenticated)
                         {
-                            <a class="nav-link" asp-controller="Home" asp-action="Configuration">Configuration</a>
+                            <a class="nav-link @(this.ViewContext.View.Path.StartsWith("/Views/Home/Configuration.cshtml", StringComparison.OrdinalIgnoreCase) ? "active": "")" asp-controller="Home" asp-action="Configuration">Configuration</a>
                         }
-                        <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+                        <a class="nav-link @(this.ViewContext.View.Path.StartsWith("/Views/Home/About.cshtml", StringComparison.OrdinalIgnoreCase) ? "active": "")" asp-controller="Home" asp-action="About">About</a>
                     </div>
                     <partial name="_LoginPartial" />
                 </div>
