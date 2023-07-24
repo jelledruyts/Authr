@@ -17,7 +17,12 @@ namespace Authr.WebApp.Services
 
         public string GetAbsoluteRootUrl()
         {
-            return this.linkGenerator.GetUriByAction(this.accessor.HttpContext, nameof(HomeController.Index), "Home", null, this.accessor.HttpContext.Request.Scheme);
+            return GetAbsoluteActionUrl(nameof(HomeController.Index), "Home");
+        }
+
+        public string GetAbsoluteActionUrl(string action, string controller)
+        {
+            return this.linkGenerator.GetUriByAction(this.accessor.HttpContext, action, controller, null, "https");
         }
     }
 }
