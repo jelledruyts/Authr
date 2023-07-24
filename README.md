@@ -37,9 +37,9 @@ If you want to support SAML 2.0, you must provide a signing and encryption certi
 | Setting | Purpose |
 | ------- | ------- |
 | `App:Certificates:ConnectionString` | Connection string to an Azure storage account where the SAML certificates are stored. |
-| `App:Certificates:SigningCertificate:Path` | The path to the SAML signing certificate, stored in PFX format. |
+| `App:Certificates:SigningCertificate:Path` | The path to the SAML signing certificate, stored in PFX format inside the `certificates` container in the storage account. |
 | `App:Certificates:SigningCertificate:Password` | The password for the SAML signing certificate PFX file. |
-| `App:Certificates:EncryptionCertificate:Path` | The path to the SAML encryption certificate, stored in PFX format. |
+| `App:Certificates:EncryptionCertificate:Path` | The path to the SAML encryption certificate, stored in PFX format inside the `certificates` container in the storage account. |
 | `App:Certificates:EncryptionCertificate:Password` | The password for the SAML encryption certificate PFX file. |
 
 If you want to allow users to sign in and save their configuration, create an [Azure AD B2C tenant](https://learn.microsoft.com/azure/active-directory-b2c/tutorial-create-tenant) and configure the following additional settings:
