@@ -5,6 +5,7 @@ namespace Authr.WebApp.Services
 {
     public interface ICertificateProvider
     {
+        bool IsCertificateConfigured(string name);
         Task<X509Certificate2> GetCertificateAsync(string name);
     }
 }

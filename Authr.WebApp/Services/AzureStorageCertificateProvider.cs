@@ -19,6 +19,11 @@ namespace Authr.WebApp.Services
             this.client = new BlobServiceClient(connectionString);
         }
 
+        public bool IsCertificateConfigured(string name)
+        {
+            return string.IsNullOrWhiteSpace(this.configuration.GetValue<string>($"App:Certificates:{name}:Path"));
+        }
+
         public async Task<X509Certificate2> GetCertificateAsync(string name)
         {
             if (!certificates.ContainsKey(name))

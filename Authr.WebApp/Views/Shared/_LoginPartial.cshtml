@@ -1,6 +1,5 @@
 ﻿@using Microsoft.Extensions.Configuration
 @inject IConfiguration Configuration
-
 <div class="navbar-nav">
     <div class="nav-item dropdown">
         <button class="nav-link dropdown-toggle" role="button" id="bs-theme" data-bs-toggle="dropdown" aria-expanded="false">
@@ -27,7 +26,7 @@
         }
         <a class="nav-link" asp-area="AzureADB2C" asp-controller="Account" asp-action="SignOut">Sign out</a>
 }
-else
+else if (!string.IsNullOrEmpty(Configuration["AzureAdB2C:SignUpSignInPolicyId"]))
 {
     <a class="nav-link" asp-area="AzureADB2C" asp-controller="Account" asp-action="SignIn">Sign in</a>
 }

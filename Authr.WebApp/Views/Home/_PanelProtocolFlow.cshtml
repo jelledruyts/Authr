@@ -1,3 +1,5 @@
+@using Authr.WebApp.Handlers
+@inject Saml2Handler Saml2Handler
 <div id="protocol-flow" class="card mt-3">
     <div class="card-header">Protocol Flow</div>
     <div class="card-body">
@@ -41,14 +43,17 @@
             <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-oauth2CustomGrant" value="@Constants.RequestTypes.OAuth2CustomGrant" v-model="requestParameters.requestType">
             <label class="form-check-label" for="requestParameters-requestType-oauth2CustomGrant">OAuth 2.0 Custom Grant</label>
         </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
-            <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2LogoutRequest" value="@Constants.RequestTypes.Saml2LogoutRequest" v-model="requestParameters.requestType">
-            <label class="form-check-label" for="requestParameters-requestType-saml2LogoutRequest">SAML 2.0 Logout Request</label>
-        </div>
+        @if (Saml2Handler.IsConfigured())
+        {
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2AuthnRequest" value="@Constants.RequestTypes.Saml2AuthnRequest" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-saml2AuthnRequest">SAML 2.0 Authentication Request</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-saml2LogoutRequest" value="@Constants.RequestTypes.Saml2LogoutRequest" v-model="requestParameters.requestType">
+                <label class="form-check-label" for="requestParameters-requestType-saml2LogoutRequest">SAML 2.0 Logout Request</label>
+            </div>
+        }
         <div class="form-check">
             <input class="form-check-input" type="radio" name="requestParameters-requestType" id="requestParameters-requestType-wsFederationSignIn" value="@Constants.RequestTypes.WsFederationSignIn" v-model="requestParameters.requestType">
             <label class="form-check-label" for="requestParameters-requestType-wsFederationSignIn">WS-Federation 1.2 Sign-In</label>

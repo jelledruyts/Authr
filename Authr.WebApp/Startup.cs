@@ -66,34 +66,37 @@ namespace Authr.WebApp
             // See https://leastprivilege.com/2017/11/15/missing-claims-in-the-asp-net-core-2-openid-connect-handler/.
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 #pragma warning disable 0618 // AzureADB2CDefaults is obsolete in favor of "Microsoft.Identity.Web"
-            services.AddAuthentication(AzureADB2CDefaults.AuthenticationScheme)
-                .AddAzureADB2C(options => Configuration.Bind("AzureAdB2C", options));
-            services.Configure<OpenIdConnectOptions>(AzureADB2CDefaults.OpenIdScheme, options =>
+            if (!string.IsNullOrWhiteSpace(Configuration.GetValue<string>("AzureAdB2C:Instance")))
             {
-                // Don't remove any incoming claims.
-                options.ClaimActions.Clear();
-
-                // Decouple authentication cookie lifetime from token lifetime.
-                options.UseTokenLifetime = false;
-
-                var onTokenValidated = options.Events.OnTokenValidated;
-                options.Events.OnTokenValidated = context =>
+                services.AddAuthentication(AzureADB2CDefaults.AuthenticationScheme)
+                    .AddAzureADB2C(options => Configuration.Bind("AzureAdB2C", options));
+                services.Configure<OpenIdConnectOptions>(AzureADB2CDefaults.OpenIdScheme, options =>
                 {
-                    if (onTokenValidated != null)
+                    // Don't remove any incoming claims.
+                    options.ClaimActions.Clear();
+
+                    // Decouple authentication cookie lifetime from token lifetime.
+                    options.UseTokenLifetime = false;
+
+                    var onTokenValidated = options.Events.OnTokenValidated;
+                    options.Events.OnTokenValidated = context =>
                     {
-                        onTokenValidated(context);
-                    }
-                    var identity = (ClaimsIdentity)context.Principal.Identity;
-                    context.Properties.IsPersistent = true; // Ensure the cookie is persistent across browser sessions.
-                    return Task.CompletedTask;
-                };
-            });
-            services.Configure<CookieAuthenticationOptions>(AzureADB2CDefaults.CookieScheme, options =>
-            {
-                // Stay logged in for 30 days with a sliding window.
-                options.ExpireTimeSpan = TimeSpan.FromDays(30);
-                options.SlidingExpiration = true;
-            });
+                        if (onTokenValidated != null)
+                        {
+                            onTokenValidated(context);
+                        }
+                        var identity = (ClaimsIdentity)context.Principal.Identity;
+                        context.Properties.IsPersistent = true; // Ensure the cookie is persistent across browser sessions.
+                        return Task.CompletedTask;
+                    };
+                });
+                services.Configure<CookieAuthenticationOptions>(AzureADB2CDefaults.CookieScheme, options =>
+                {
+                    // Stay logged in for 30 days with a sliding window.
+                    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+                    options.SlidingExpiration = true;
+                });
+            }
 #pragma warning restore 0618
 
             // Set up routing and MVC.

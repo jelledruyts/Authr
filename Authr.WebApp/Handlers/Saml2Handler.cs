@@ -35,6 +35,15 @@ namespace Authr.WebApp.Handlers
 
         #endregion
 
+        #region IsConfigured
+
+        public bool IsConfigured()
+        {
+            return this.certificateProvider.IsCertificateConfigured(Constants.CertificateNames.SigningCertificate) && this.certificateProvider.IsCertificateConfigured(Constants.CertificateNames.EncryptionCertificate);
+        }
+
+        #endregion
+
         #region Metadata
 
         public async Task<string> GetMetadataXmlAsync()

@@ -1,3 +1,5 @@
+@using Authr.WebApp.Handlers
+@inject Saml2Handler Saml2Handler
 @{
     ViewData["Title"] = "About";
 }
@@ -28,12 +30,15 @@
     </p>
 </div>
 
-<h5 class="mt-4">Metadata Endpoints</h5>
-<div class="form-group">
-    <label class="form-label" for="metadata-saml2">SAML 2.0 Metadata Endpoint</label>
-    <div class="input-group">
-        <input type="text" class="form-control font-monospace" id="metadata-saml2" value="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" readonly>
-        <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
-        <a href="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" class="btn btn-outline-secondary" title="Browse to the SAML 2.0 Metadata"><i class="bi bi-box-arrow-up-right"></i></a>
+@if (Saml2Handler.IsConfigured())
+{
+    <h5 class="mt-4">Metadata Endpoints</h5>
+    <div class="form-group">
+        <label class="form-label" for="metadata-saml2">SAML 2.0 Metadata Endpoint</label>
+        <div class="input-group">
+            <input type="text" class="form-control font-monospace" id="metadata-saml2" value="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" readonly>
+            <button type="button" class="btn btn-outline-secondary btn-copy" data-clipboard-target="#metadata-saml2" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
+            <a href="@Url.Action("MetadataSaml2", "Home", null, this.Context.Request.Scheme)" class="btn btn-outline-secondary" title="Browse to the SAML 2.0 Metadata"><i class="bi bi-box-arrow-up-right"></i></a>
+        </div>
     </div>
-</div>
+}
