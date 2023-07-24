@@ -1,10 +1,12 @@
-name: Build and Deploy Authr
+name: Build, Containerize and Deploy Authr
 
 on:
   workflow_dispatch:
   push:
     branches:
     - master
+    paths:
+    - 'Authr.WebApp/**'
 
 permissions:
   id-token: write
@@ -17,7 +19,14 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v1
+      uses: actions/checkout@v2
+    - name: Build Docker Image
+      run: docker build --no-cache --build-arg app_version=1.0.$GITHUB_RUN_NUMBER --build-arg source_version=$GITHUB_SHA -t jelledruyts/authr:latest -f ./Authr.WebApp/.Dockerfile ./Authr.WebApp
+    - name: Push Docker Image to GitHub Package
+      run: |
+        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+        docker tag jelledruyts/authr:latest ghcr.io/jelledruyts/authr:latest
+        docker push ghcr.io/jelledruyts/authr:latest
     - name: Azure Login
       uses: Azure/login@v1
       with:
