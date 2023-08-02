@@ -74,9 +74,9 @@ namespace Authr.WebApp.Handlers
                 {
                     Id = Guid.NewGuid().ToString(),
                     Name = tenant,
-                    AuthorizationEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/authorize",
-                    TokenEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/token",
-                    DeviceCodeEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/devicecode",
+                    AuthorizationEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/authorize",
+                    TokenEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/token",
+                    DeviceCodeEndpoint = $"https://{tenant}.ciamlogin.com/{tenant}.onmicrosoft.com/oauth2/v2.0/devicecode",
                     SamlSignOnEndpoint = null, // Not supported.
                     SamlLogoutEndpoint = null, // Not supported.
                     WsFederationSignOnEndpoint = null // Not supported.
