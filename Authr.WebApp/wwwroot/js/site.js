@@ -40,11 +40,11 @@
     addClaimInfo(wellKnownClaims, 'http://schemas.microsoft.com/identity/claims/identityprovider', 'Identity Provider', 'The Identity Provider that authenticated the subject of the token, if that is different from the issuer of the token.', null);
     addClaimInfo(wellKnownClaims, 'idp', 'Identity Provider', 'The Identity Provider that authenticated the subject of the token, if that is different from the issuer of the token.', null);
     addClaimInfo(wellKnownClaims, 'in_corp', 'In Corp', 'Indicates if the user is authenticating from a corporate network.', null);
-    addClaimInfo(wellKnownClaims, 'aio', 'Internal', 'An internal claim used by Azure Active Directory. Should be ignored.', null);
-    addClaimInfo(wellKnownClaims, 'rh', 'Internal', 'An internal claim used by Azure Active Directory. Should be ignored.', null);
-    addClaimInfo(wellKnownClaims, 'uti', 'Internal', 'An internal claim used by Azure Active Directory. Should be ignored.', null);
-    addClaimInfo(wellKnownClaims, 'xms_st', 'Internal', 'An internal claim used by Azure Active Directory. Should be ignored.', null);
-    addClaimInfo(wellKnownClaims, 'xms_tcdt', 'Internal', 'An internal claim used by Azure Active Directory. Should be ignored.', 'UnixTime');
+    addClaimInfo(wellKnownClaims, 'aio', 'Internal', 'An internal claim used by Microsoft Entra ID. Should be ignored.', null);
+    addClaimInfo(wellKnownClaims, 'rh', 'Internal', 'An internal claim used by Microsoft Entra ID. Should be ignored.', null);
+    addClaimInfo(wellKnownClaims, 'uti', 'Internal', 'An internal claim used by Microsoft Entra ID. Should be ignored.', null);
+    addClaimInfo(wellKnownClaims, 'xms_st', 'Internal', 'An internal claim used by Microsoft Entra ID. Should be ignored.', null);
+    addClaimInfo(wellKnownClaims, 'xms_tcdt', 'Internal', 'An internal claim used by Microsoft Entra ID. Should be ignored.', 'UnixTime');
     addClaimInfo(wellKnownClaims, 'ipaddr', 'IP Address', 'The IP address the user authenticated from.', null);
     addClaimInfo(wellKnownClaims, 'iat', 'Issued At', 'The time the token was issued.', 'UnixTime');
     addClaimInfo(wellKnownClaims, 'iss', 'Issuer', 'The issuer, i.e. the Security Token Service that issued the token.', null);

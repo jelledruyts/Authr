@@ -14,15 +14,15 @@
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureAD" value="@Constants.IdentityServiceImportTypes.AzureAD" v-model="identityServiceImportRequestParameters.importType">
-                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureAD">Azure AD</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureADB2C" value="@Constants.IdentityServiceImportTypes.AzureADB2C" v-model="identityServiceImportRequestParameters.importType">
-                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureADB2C">Azure AD B2C</label>
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureAD">Microsoft Entra ID (formerly Azure AD)</label>
                     </div>
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-microsoftEntraExternalId" value="@Constants.IdentityServiceImportTypes.MicrosoftEntraExternalId" v-model="identityServiceImportRequestParameters.importType">
                         <label class="form-check-label" for="identityServiceImportRequestParameters-importType-microsoftEntraExternalId">Microsoft Entra External ID</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="identityServiceImportRequestParameters-importType" id="identityServiceImportRequestParameters-importType-azureADB2C" value="@Constants.IdentityServiceImportTypes.AzureADB2C" v-model="identityServiceImportRequestParameters.importType">
+                        <label class="form-check-label" for="identityServiceImportRequestParameters-importType-azureADB2C">Azure AD B2C</label>
                     </div>
                 </div>
                 <div class="mt-3">
@@ -35,10 +35,10 @@
                         <input type="text" class="form-control" id="identityServiceImportRequestParameters-federationMetadataUrl" v-model="identityServiceImportRequestParameters.federationMetadataUrl" placeholder="Enter the URL of the federation metadata document">
                     </div>
                     <div class="form-group" v-if="identityServiceImportRequestParameters.importType === '@Constants.IdentityServiceImportTypes.AzureAD'">
-                        <label class="form-label" for="identityServiceImportRequestParameters-tenant">Azure AD Tenant</label>
-                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Azure AD tenant">
+                        <label class="form-label" for="identityServiceImportRequestParameters-tenant">Microsoft Entra ID Tenant</label>
+                        <input type="text" class="form-control" id="identityServiceImportRequestParameters-tenant" v-model="identityServiceImportRequestParameters.tenant" placeholder="Enter the name, ID or custom domain of the Microsoft Entra ID tenant">
                         <div class="mt-3 small text-muted">
-                            <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant Azure AD application:
+                            <strong>Tip!</strong> For easy testing, you can use the following Client ID (without a Client Secret) which is a multi-tenant application:
                             <div class="input-group input-group-sm mt-2">
                                 <input type="text" class="form-control font-monospace" id="clientid-aad-mt" value="fb859816-0967-41eb-a59f-6a525d3fda8e" readonly>
                                 <button type="button" class="btn btn-sm btn-outline-secondary btn-copy" data-clipboard-target="#clientid-aad-mt" title="Copy to clipboard"><i class="bi bi-clipboard"></i></button>
