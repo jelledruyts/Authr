@@ -5,6 +5,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Authr.WebApp.Handlers;
+using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Models;
 using Authr.WebApp.Services;
 using Microsoft.ApplicationInsights;

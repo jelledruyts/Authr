@@ -1,5 +1,4 @@
-<h5 class="mt-3">Flow</h5>
-
+<h5 class="mt-3">Start</h5>
 <div v-if="flow.requestType">Request type: <code>{{ flow.requestType }}</code></div>
 <div v-if="flow.timeCreated">Started: <code>{{ flow.timeCreated | datetime }}</code></div>
 <div class="form-check">
@@ -16,11 +15,19 @@
         </div>
         <div v-if="request.timeCreated">Sent: <code>{{ request.timeCreated | datetime }}</code></div>
         <div v-if="request.requestedRedirectUrl">Requested Redirect URL: <code>{{ request.requestedRedirectUrl }}</code></div>
-        <div v-if="request.parameters">
-            <div>Parameters:</div>
+        <div v-if="request.response?.httpRequestLog">
+            <div>HTTP Request:</div>
             <div class="card">
                 <div class="card-body">
-                    <pre><code>{{ request.parameters }}</code></pre>
+                    <pre class="flowMessage"><code>{{ request.response.httpRequestLog }}</code></pre>
+                </div>
+            </div>
+        </div>
+        <div v-if="request.parameters">
+            <div>Request Parameters:</div>
+            <div class="card">
+                <div class="card-body">
+                    <pre class="flowMessage"><code>{{ request.parameters | trimParameters }}</code></pre>
                 </div>
             </div>
         </div>
@@ -28,7 +35,7 @@
             <div>Request Message:</div>
             <div class="card">
                 <div class="card-body">
-                    <pre><code>{{ request.requestMessage }}</code></pre>
+                    <pre class="flowMessage"><code>{{ request.requestMessage }}</code></pre>
                 </div>
             </div>
         </div>
@@ -36,9 +43,18 @@
         <div v-if="request.response">
             <h5 class="mt-3">Response #<span>{{ requestIndex + 1 }}</span></h5>
             <div v-if="request.response.timeCreated">Received: <code>{{ request.response.timeCreated | datetime }}</code></div>
+            <div v-if="request.response?.httpResponseLog">
+                <div>HTTP Response:</div>
+                <div class="card">
+                    <div class="card-body">
+                        <pre class="flowMessage"><code>{{ request.response.httpResponseLog }}</code></pre>
+                    </div>
+                </div>
+            </div>
+            <div>Response Parameters:</div>
             <div class="card">
                 <div class="card-body">
-                    <pre><code>{{ request.response }}</code></pre>
+                    <pre class="flowMessage"><code>{{ request.response | trimParameters }}</code></pre>
                 </div>
             </div>
         </div>

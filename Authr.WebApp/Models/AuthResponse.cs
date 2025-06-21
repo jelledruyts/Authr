@@ -1,4 +1,6 @@
 using System;
+using System.Net.Http;
+using Authr.WebApp.Infrastructure;
 using IdentityModel.Client;
 
 namespace Authr.WebApp.Models
@@ -20,7 +22,19 @@ namespace Authr.WebApp.Models
         public string SamlResponse { get; set; }
         public string WsFederationResponse { get; set; }
         public string Raw { get; set; }
+        public string HttpRequestLog { get; set; }
+        public string HttpResponseLog { get; set; }
         public DateTimeOffset TimeCreated { get; set; } = DateTimeOffset.UtcNow;
+
+        public AuthResponse()
+        {
+        }
+
+        public AuthResponse(HttpResponseMessage httpResponseMessage)
+        {
+            this.HttpRequestLog = InspectingDelegatingHandler.GetRequestLog(httpResponseMessage);
+            this.HttpResponseLog = InspectingDelegatingHandler.GetResponseLog(httpResponseMessage);
+        }
 
         public static AuthResponse FromException(Exception value)
         {
@@ -58,7 +72,7 @@ namespace Authr.WebApp.Models
 
         public static AuthResponse FromTokenResponse(TokenResponse value)
         {
-            return new AuthResponse
+            return new AuthResponse(value.HttpResponse)
             {
                 Error = value.Error,
                 ErrorDescription = value.ErrorDescription,
@@ -73,7 +87,7 @@ namespace Authr.WebApp.Models
 
         public static AuthResponse FromDeviceCodeResponse(DeviceAuthorizationResponse value)
         {
-            return new AuthResponse
+            return new AuthResponse(value.HttpResponse)
             {
                 DeviceCode = value.DeviceCode,
                 DeviceUserCode = value.UserCode,

@@ -1,6 +1,6 @@
 using System.Security.Claims;
 
-namespace Authr.WebApp
+namespace Authr.WebApp.Infrastructure
 {
     public static class ExtensionMethods
     {

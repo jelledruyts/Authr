@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Authr.WebApp
+namespace Authr.WebApp.Infrastructure
 {
     // Allows the breaking change for SameSite cookies to be handled more easily.
     // See https://docs.microsoft.com/en-us/aspnet/samesite/system-web-samesite and

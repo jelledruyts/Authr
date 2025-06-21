@@ -1,6 +1,6 @@
 using System;
 
-namespace Authr.WebApp
+namespace Authr.WebApp.Infrastructure
 {
     public static class Guard
     {

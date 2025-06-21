@@ -37,6 +37,17 @@ new Vue({
         },
         token: function (decodedToken) {
             return Authr.formatDecodedToken(decodedToken);
+        },
+        trimParameters: function (value) {
+            // Remove all null properties from the object.
+            if (value && typeof value === 'object') {
+                return Object.keys(value).reduce(function (result, key) {
+                    if (key !== 'httpRequestLog' && key !== 'httpResponseLog' && key !== 'timeCreated' && value[key] !== null && value[key] !== undefined) {
+                        result[key] = value[key];
+                    }
+                    return result;
+                }, {});
+            }
         }
     },
     watch: {

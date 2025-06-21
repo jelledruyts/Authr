@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Models;
 using Authr.WebApp.Services;
 using ITfoxtec.Identity.Saml2;

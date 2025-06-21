@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Models;
 using IdentityModel;
 using IdentityModel.Client;

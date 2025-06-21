@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Authr.WebApp.Handlers;
+using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Services;
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;
@@ -108,7 +109,9 @@ namespace Authr.WebApp
             services.AddRazorPages();
 
             // Set up additional services.
-            services.AddHttpClient();
+            services.AddTransient<InspectingDelegatingHandler>();
+            services.AddHttpClient(string.Empty).AddHttpMessageHandler<InspectingDelegatingHandler>();
+
             var userConfigurationConnectionString = Configuration.GetValue<string>("App:UserConfiguration:ConnectionString");
             if (string.IsNullOrWhiteSpace(userConfigurationConnectionString))
             {

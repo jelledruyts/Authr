@@ -1,3 +1,4 @@
+using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Models;
 using Microsoft.IdentityModel.Protocols.WsFederation;
 

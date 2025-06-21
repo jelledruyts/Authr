@@ -26,3 +26,8 @@ html[data-bs-theme='dark'] .form-control[readonly] {
   /* For consistency with Bootstrap 4 */
   margin-bottom: 1rem;
 }
+
+.flowMessage {
+  white-space: pre-wrap;
+  margin-bottom: 5px;
+}
