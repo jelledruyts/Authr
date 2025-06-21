@@ -20,7 +20,7 @@ If you choose to create an account and sign in to Authr, you can also save the c
 
 Instead of using the public [Authr](https://authr.dev/) website, you can also deploy it to Azure App Service directly:
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjelledruyts%2FAuthr%2Fmaster%2Fazuredeploy-webapp.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fjelledruyts%2FAuthr%2Fmain%2Fazuredeploy-webapp.json)
 
 You can also deploy Authr as a container to a web hosting service of your choice. You can find the latest published version of the Docker container publicly on the **GitHub packages container registry** at **[ghcr.io/jelledruyts/authr](https://ghcr.io/jelledruyts/authr)** with image tag `jelledruyts/authr:latest` or simply `jelledruyts/authr`.
 
