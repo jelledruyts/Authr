@@ -1,5 +1,5 @@
 using System.Text.Json.Serialization;
-using IdentityModel;
+using Duende.IdentityModel;
 using ITfoxtec.Identity.Saml2.Schemas;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Protocols.WsFederation;

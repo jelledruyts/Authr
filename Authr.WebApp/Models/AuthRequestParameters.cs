@@ -1,6 +1,6 @@
 using System;
 using System.Linq;
-using IdentityModel.Client;
+using Duende.IdentityModel.Client;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace Authr.WebApp.Models

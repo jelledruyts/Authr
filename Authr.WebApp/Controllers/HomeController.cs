@@ -508,9 +508,9 @@ namespace Authr.WebApp.Controllers
                 if (string.IsNullOrWhiteSpace(model.RequestParameters.RequestType))
                 {
                     model.RequestParameters.RequestType = model.RequestParameters.RequestType ?? Constants.RequestTypes.OpenIdConnect;
-                    model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? IdentityModel.OidcConstants.ResponseTypes.IdToken;
-                    model.RequestParameters.Scope = model.RequestParameters.Scope ?? IdentityModel.OidcConstants.StandardScopes.OpenId;
-                    model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? IdentityModel.OidcConstants.ResponseModes.FormPost;
+                    model.RequestParameters.ResponseType = model.RequestParameters.ResponseType ?? Duende.IdentityModel.OidcConstants.ResponseTypes.IdToken;
+                    model.RequestParameters.Scope = model.RequestParameters.Scope ?? Duende.IdentityModel.OidcConstants.StandardScopes.OpenId;
+                    model.RequestParameters.ResponseMode = model.RequestParameters.ResponseMode ?? Duende.IdentityModel.OidcConstants.ResponseModes.FormPost;
                     model.RequestParameters.RedirectUri = model.RequestParameters.RedirectUri ?? this.absoluteUrlProvider.GetAbsoluteRootUrl();
                     model.RequestParameters.RequestMethod = model.RequestParameters.RequestMethod ?? Constants.RequestMethods.HttpRedirect;
                 }

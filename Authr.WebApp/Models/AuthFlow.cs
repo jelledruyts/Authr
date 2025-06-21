@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using IdentityModel;
+using Duende.IdentityModel;
 
 namespace Authr.WebApp.Models
 {

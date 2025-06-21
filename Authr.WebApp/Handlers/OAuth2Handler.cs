@@ -3,8 +3,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Authr.WebApp.Infrastructure;
 using Authr.WebApp.Models;
-using IdentityModel;
-using IdentityModel.Client;
+using Duende.IdentityModel;
+using Duende.IdentityModel.Client;
 using Microsoft.Extensions.Logging;
 
 namespace Authr.WebApp.Handlers

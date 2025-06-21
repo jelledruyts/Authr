@@ -1,7 +1,7 @@
 using System;
 using System.Net.Http;
 using Authr.WebApp.Infrastructure;
-using IdentityModel.Client;
+using Duende.IdentityModel.Client;
 
 namespace Authr.WebApp.Models
 {
