@@ -133,6 +133,7 @@ namespace Authr.WebApp
             services.AddScoped<AbsoluteUrlProvider>();
 
             // Set up handlers.
+            services.AddClientCredentialsTokenManagement(); // For DPoP support.
             services.AddScoped<UserConfigurationHandler>();
             services.AddScoped<IdentityServiceHandler>();
             services.AddScoped<OAuth2Handler>();

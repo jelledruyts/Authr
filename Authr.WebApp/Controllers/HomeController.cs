@@ -237,264 +237,11 @@ namespace Authr.WebApp.Controllers
             {
                 if (responseParameters != null && !responseParameters.IsEmpty())
                 {
-                    // We have a response to a previously initiated flow, attempt to determine the flow id from an incoming "State", "RelayState" or "Wctx" parameter.
-                    var flowId = default(string);
-                    if (responseParameters.State != null && responseParameters.State.StartsWith(Constants.StatePrefixes.Flow))
-                    {
-                        flowId = responseParameters.State.Substring(Constants.StatePrefixes.Flow.Length);
-                    }
-                    if (string.IsNullOrWhiteSpace(flowId) && responseParameters.RelayState != null && responseParameters.RelayState.StartsWith(Constants.StatePrefixes.Flow))
-                    {
-                        flowId = responseParameters.RelayState.Substring(Constants.StatePrefixes.Flow.Length);
-                    }
-                    if (string.IsNullOrWhiteSpace(flowId) && responseParameters.Wctx != null && responseParameters.Wctx.StartsWith(Constants.StatePrefixes.Flow))
-                    {
-                        flowId = responseParameters.Wctx.Substring(Constants.StatePrefixes.Flow.Length);
-                    }
-
-                    // Retrieve the flow details from cache.
-                    var flow = default(AuthFlow);
-                    var flowReferenceToRemoveFromCacheWhenComplete = default(string);
-                    if (!string.IsNullOrWhiteSpace(flowId))
-                    {
-                        // We have a state correlation id, this a response to an existing request we should have full request details for.
-                        // The flow id should be in the State parameter as passed in during the request original.
-                        flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
-                        if (flow != null)
-                        {
-                            flowReferenceToRemoveFromCacheWhenComplete = flow.Id;
-                        }
-                        else
-                        {
-                            this.logger.LogWarning($"Flow with original request not found for flow id \"{flowId}\".");
-                        }
-                    }
-
-                    // If no flow was found, track it as an externally initiated request.
-                    if (flow == null)
-                    {
-                        // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
-                        flow = new AuthFlow { UserId = this.User.GetUserId() };
-                        this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
-                        flow.AddExternallyInitiatedRequest();
-                    }
-
-                    // Check that the request belongs to the current user if signed in.
-                    if (!string.IsNullOrWhiteSpace(flow.UserId) && flow.UserId != this.User.GetUserId())
-                    {
-                        this.logger.LogWarning($"Flow \"{flow.Id}\" was requested by user \"{flow.UserId}\" but a response is now being processed by user \"{this.User.GetUserId()}\".");
-                        throw new InvalidOperationException("You don't have permissions to this flow.");
-                    }
-
-                    var originalRequest = flow.Requests.Last();
-                    model.Flow = flow;
-                    model.RequestParameters = originalRequest.Parameters;
-
-                    // Populate the response from the incoming parameters.
-                    var response = AuthResponse.FromAuthResponseParameters(responseParameters);
-                    originalRequest.Response = response;
-                    this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", originalRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (originalRequest.Response.TimeCreated - originalRequest.TimeCreated).TotalMilliseconds } });
-
-                    // If there is an authorization code response, redeem it immediately for the access token.
-                    if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode))
-                    {
-                        if (originalRequest.IsInitiatedExternally)
-                        {
-                            originalRequest.Response = AuthResponse.FromError("An authorization code was received but the request was initiated externally, cannot redeem it for an access token.", $"Authorization code: \"{responseParameters.AuthorizationCode}\".");
-                        }
-                        else
-                        {
-                            var authorizationCodeRequestParameters = new AuthRequestParameters(originalRequest.Parameters);
-                            authorizationCodeRequestParameters.RequestType = Constants.RequestTypes.AuthorizationCode;
-                            authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
-                            var authorizationCodeRequest = flow.AddRequest(authorizationCodeRequestParameters);
-                            this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } });
-                            var authorizationCodeResponse = await this.oauth2Handler.HandleAuthorizationCodeResponseAsync(authorizationCodeRequest.Parameters, originalRequest.CodeVerifier);
-                            authorizationCodeRequest.Response = authorizationCodeResponse;
-                            this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (authorizationCodeRequest.Response.TimeCreated - authorizationCodeRequest.TimeCreated).TotalMilliseconds } });
-                        }
-                    }
-                    flow.IsComplete = true;
-                    flow.TimeCompleted = DateTimeOffset.UtcNow;
-                    this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
-                    if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
-                    {
-                        await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
-                    }
-
-                    // Set the response to the last relevant response received.
-                    model.Response = flow.Requests.Last().Response;
+                    await HandleResponseCoreAsync(model, responseParameters);
                 }
                 else if (requestParameters != null && !string.IsNullOrWhiteSpace(requestParameters.RequestType))
                 {
-                    // Set defaults if omitted.
-                    if (string.IsNullOrWhiteSpace(requestParameters.RedirectUri))
-                    {
-                        requestParameters.RedirectUri = this.absoluteUrlProvider.GetAbsoluteRootUrl();
-                    }
-                    // Import Identity Service if requested.
-                    if (!string.IsNullOrWhiteSpace(requestParameters.ImportType))
-                    {
-                        var identityService = await SubmitIdentityServiceImportRequest(requestParameters);
-                        if (identityService != null)
-                        {
-                            requestParameters.AuthorizationEndpoint = identityService.AuthorizationEndpoint;
-                            requestParameters.TokenEndpoint = identityService.TokenEndpoint;
-                            requestParameters.DeviceCodeEndpoint = identityService.DeviceCodeEndpoint;
-                            requestParameters.SamlSignOnEndpoint = identityService.SamlSignOnEndpoint;
-                            requestParameters.SamlLogoutEndpoint = identityService.SamlLogoutEndpoint;
-                            requestParameters.WsFederationSignOnEndpoint = identityService.WsFederationSignOnEndpoint;
-                        }
-                    }
-
-                    if (string.Equals(requestParameters.RequestAction, Constants.RequestActions.GenerateLink, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        var clone = new AuthRequestParameters(requestParameters);
-                        clone.RequestAction = null; // Don't generate a link with the "generate a link" request action.
-                        model.GeneratedLink = Url.Action(nameof(Index), clone);
-                    }
-                    else if (string.Equals(Request.Method, HttpMethod.Post.Method, StringComparison.InvariantCultureIgnoreCase)
-                        || string.Equals(requestParameters.RequestAction, Constants.RequestActions.PerformRequest, StringComparison.InvariantCultureIgnoreCase))
-                    {
-                        // Look up an existing flow if possible.
-                        var flowReferenceToRemoveFromCacheWhenComplete = default(string);
-                        var flow = default(AuthFlow);
-                        if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken && !string.IsNullOrWhiteSpace(requestParameters.DeviceCode))
-                        {
-                            flow = await this.authFlowCacheProvider.GetAuthFlowAsync(requestParameters.DeviceCode);
-                            flowReferenceToRemoveFromCacheWhenComplete = (flow == null ? null : requestParameters.DeviceCode);
-                        }
-                        if (flow == null)
-                        {
-                            flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
-                            this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
-                        }
-                        model.Flow = flow;
-                        model.RequestParameters = requestParameters;
-                        var request = flow.AddRequest(requestParameters);
-                        this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } });
-
-                        // Determine which flow to execute.
-                        if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
-                        {
-                            model.RequestedRedirectUrl = this.oauth2Handler.GetAuthorizationEndpointRequestUrl(request);
-                            request.RequestedRedirectUrl = model.RequestedRedirectUrl;
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
-                        {
-                            request.Response = await this.oauth2Handler.HandleClientCredentialsRequestAsync(requestParameters);
-                            flow.IsComplete = true;
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
-                        {
-                            request.Response = await this.oauth2Handler.HandleRefreshTokenRequestAsync(requestParameters);
-                            flow.IsComplete = true;
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
-                        {
-                            request.Response = await this.oauth2Handler.HandleDeviceCodeRequestAsync(requestParameters);
-                            if (string.IsNullOrWhiteSpace(request.Response.DeviceCode))
-                            {
-                                flow.IsComplete = true;
-                            }
-                            else
-                            {
-                                // This is just the first part of the flow, the device token still has to be requested.
-                                // Keep the flow in cache until the device code is exchanged for the token.
-                                await this.authFlowCacheProvider.SetAuthFlowAsync(request.Response.DeviceCode, flow);
-                                flow.IsComplete = false;
-                            }
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
-                        {
-                            request.Response = await this.oauth2Handler.HandleDeviceTokenRequestAsync(requestParameters);
-                            if (string.IsNullOrWhiteSpace(request.Response.Error))
-                            {
-                                flow.IsComplete = true;
-                            }
-                            else
-                            {
-                                // An error occurred so the flow is not complete yet, save changes.
-                                await this.authFlowCacheProvider.SetAuthFlowAsync(requestParameters.DeviceCode, flow);
-                            }
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
-                        {
-                            request.Response = await this.oauth2Handler.HandleResourceOwnerPasswordCredentialsRequestAsync(requestParameters);
-                            flow.IsComplete = true;
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.OnBehalfOf)
-                        {
-                            request.Response = await this.oauth2Handler.HandleOnBehalfOfRequestAsync(requestParameters);
-                            flow.IsComplete = true;
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.OAuth2CustomGrant)
-                        {
-                            request.Response = await this.oauth2Handler.HandleCustomGrantRequestAsync(requestParameters);
-                            flow.IsComplete = true;
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
-                        {
-                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
-                            {
-                                var postContent = await this.saml2Handler.GetAuthenticationRequestHttpPostPageContentAsync(request);
-                                model.RequestedPageContent = postContent;
-                            }
-                            else
-                            {
-                                var redirectUrl = await this.saml2Handler.GetAuthenticationRequestHttpGetRedirectUrl(request);
-                                model.RequestedRedirectUrl = redirectUrl;
-                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
-                            }
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.Saml2LogoutRequest)
-                        {
-                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
-                            {
-                                var postContent = await this.saml2Handler.GetLogoutRequestHttpPostPageContentAsync(request);
-                                model.RequestedPageContent = postContent;
-                            }
-                            else
-                            {
-                                var redirectUrl = await this.saml2Handler.GetLogoutRequestHttpGetRedirectUrl(request);
-                                model.RequestedRedirectUrl = redirectUrl;
-                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
-                            }
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        }
-                        else if (requestParameters.RequestType == Constants.RequestTypes.WsFederationSignIn)
-                        {
-                            if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
-                            {
-                                model.RequestedPageContent = this.wsFederationHandler.GetWsFederationSignInHttpPostPageContent(request);
-                            }
-                            else
-                            {
-                                model.RequestedRedirectUrl = this.wsFederationHandler.GetWsFederationSignInHttpGetRedirectUrl(request);
-                                request.RequestedRedirectUrl = model.RequestedRedirectUrl;
-                            }
-                            await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
-                        }
-
-                        if (request.Response != null)
-                        {
-                            this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", request.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (request.Response.TimeCreated - request.TimeCreated).TotalMilliseconds } });
-                        }
-                        if (flow.IsComplete)
-                        {
-                            flow.TimeCompleted = DateTimeOffset.UtcNow;
-                            this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
-                            if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
-                            {
-                                await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
-                            }
-                        }
-
-                        // Set the response to the last relevant response received.
-                        model.Response = flow.Requests.Last().Response;
-                    }
+                    await HandleRequestCoreAsync(model, requestParameters);
                 }
             }
             catch (Exception exc)
@@ -516,6 +263,272 @@ namespace Authr.WebApp.Controllers
                 }
             }
             return model;
+        }
+
+        private async Task HandleRequestCoreAsync(AuthViewModel model, AuthRequestParameters requestParameters)
+        {
+            // Set defaults if omitted.
+            if (string.IsNullOrWhiteSpace(requestParameters.RedirectUri))
+            {
+                requestParameters.RedirectUri = this.absoluteUrlProvider.GetAbsoluteRootUrl();
+            }
+
+            // Import Identity Service if requested.
+            if (!string.IsNullOrWhiteSpace(requestParameters.ImportType))
+            {
+                var identityService = await SubmitIdentityServiceImportRequest(requestParameters);
+                if (identityService != null)
+                {
+                    requestParameters.AuthorizationEndpoint = identityService.AuthorizationEndpoint;
+                    requestParameters.TokenEndpoint = identityService.TokenEndpoint;
+                    requestParameters.DeviceCodeEndpoint = identityService.DeviceCodeEndpoint;
+                    requestParameters.SamlSignOnEndpoint = identityService.SamlSignOnEndpoint;
+                    requestParameters.SamlLogoutEndpoint = identityService.SamlLogoutEndpoint;
+                    requestParameters.WsFederationSignOnEndpoint = identityService.WsFederationSignOnEndpoint;
+                }
+            }
+
+            if (string.Equals(requestParameters.RequestAction, Constants.RequestActions.GenerateLink, StringComparison.InvariantCultureIgnoreCase))
+            {
+                var clone = new AuthRequestParameters(requestParameters);
+                clone.RequestAction = null; // Don't generate a link with the "generate a link" request action.
+                model.GeneratedLink = Url.Action(nameof(Index), clone);
+            }
+            else if (string.Equals(Request.Method, HttpMethod.Post.Method, StringComparison.InvariantCultureIgnoreCase)
+                || string.Equals(requestParameters.RequestAction, Constants.RequestActions.PerformRequest, StringComparison.InvariantCultureIgnoreCase))
+            {
+                // Look up an existing flow if possible.
+                var flowReferenceToRemoveFromCacheWhenComplete = default(string);
+                var flow = default(AuthFlow);
+                if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken && !string.IsNullOrWhiteSpace(requestParameters.DeviceCode))
+                {
+                    flow = await this.authFlowCacheProvider.GetAuthFlowAsync(requestParameters.DeviceCode);
+                    flowReferenceToRemoveFromCacheWhenComplete = (flow == null ? null : requestParameters.DeviceCode);
+                }
+                if (flow == null)
+                {
+                    flow = new AuthFlow { UserId = this.User.GetUserId(), RequestType = requestParameters.RequestType };
+                    this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
+                }
+                model.Flow = flow;
+                model.RequestParameters = requestParameters;
+                this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", requestParameters?.RequestType } });
+
+                // Determine which flow to execute.
+                if (requestParameters.RequestType == Constants.RequestTypes.OpenIdConnect || requestParameters.RequestType == Constants.RequestTypes.Implicit || requestParameters.RequestType == Constants.RequestTypes.AuthorizationCode)
+                {
+                    var request = flow.AddRequest(requestParameters);
+                    model.RequestedRedirectUrl = this.oauth2Handler.GetAuthorizationEndpointRequestUrl(request);
+                    request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                    await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.ClientCredentials)
+                {
+                    await this.oauth2Handler.HandleClientCredentialsRequestAsync(flow, requestParameters);
+                    flow.IsComplete = true;
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.RefreshToken)
+                {
+                    await this.oauth2Handler.HandleRefreshTokenRequestAsync(flow, requestParameters);
+                    flow.IsComplete = true;
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.DeviceCode)
+                {
+                    var request = await this.oauth2Handler.HandleDeviceCodeRequestAsync(flow, requestParameters);
+                    if (string.IsNullOrWhiteSpace(request.Response.DeviceCode))
+                    {
+                        flow.IsComplete = true;
+                    }
+                    else
+                    {
+                        // This is just the first part of the flow, the device token still has to be requested.
+                        // Keep the flow in cache until the device code is exchanged for the token.
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(request.Response.DeviceCode, flow);
+                        flow.IsComplete = false;
+                    }
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.DeviceToken)
+                {
+                    var request = await this.oauth2Handler.HandleDeviceTokenRequestAsync(flow, requestParameters);
+                    if (string.IsNullOrWhiteSpace(request.Response.Error))
+                    {
+                        flow.IsComplete = true;
+                    }
+                    else
+                    {
+                        // An error occurred so the flow is not complete yet, save changes.
+                        await this.authFlowCacheProvider.SetAuthFlowAsync(requestParameters.DeviceCode, flow);
+                    }
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.ResourceOwnerPasswordCredentials)
+                {
+                    await this.oauth2Handler.HandleResourceOwnerPasswordCredentialsRequestAsync(flow, requestParameters);
+                    flow.IsComplete = true;
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.OnBehalfOf)
+                {
+                    await this.oauth2Handler.HandleOnBehalfOfRequestAsync(flow, requestParameters);
+                    flow.IsComplete = true;
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.OAuth2CustomGrant)
+                {
+                    await this.oauth2Handler.HandleCustomGrantRequestAsync(flow, requestParameters);
+                    flow.IsComplete = true;
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.Saml2AuthnRequest)
+                {
+                    var request = flow.AddRequest(requestParameters);
+                    if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                    {
+                        var postContent = await this.saml2Handler.GetAuthenticationRequestHttpPostPageContentAsync(request);
+                        model.RequestedPageContent = postContent;
+                    }
+                    else
+                    {
+                        var redirectUrl = await this.saml2Handler.GetAuthenticationRequestHttpGetRedirectUrl(request);
+                        model.RequestedRedirectUrl = redirectUrl;
+                        request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                    }
+                    await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.Saml2LogoutRequest)
+                {
+                    var request = flow.AddRequest(requestParameters);
+                    if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                    {
+                        var postContent = await this.saml2Handler.GetLogoutRequestHttpPostPageContentAsync(request);
+                        model.RequestedPageContent = postContent;
+                    }
+                    else
+                    {
+                        var redirectUrl = await this.saml2Handler.GetLogoutRequestHttpGetRedirectUrl(request);
+                        model.RequestedRedirectUrl = redirectUrl;
+                        request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                    }
+                    await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                }
+                else if (requestParameters.RequestType == Constants.RequestTypes.WsFederationSignIn)
+                {
+                    var request = flow.AddRequest(requestParameters);
+                    if (requestParameters.RequestMethod == Constants.RequestMethods.HttpPost)
+                    {
+                        model.RequestedPageContent = this.wsFederationHandler.GetWsFederationSignInHttpPostPageContent(request);
+                    }
+                    else
+                    {
+                        model.RequestedRedirectUrl = this.wsFederationHandler.GetWsFederationSignInHttpGetRedirectUrl(request);
+                        request.RequestedRedirectUrl = model.RequestedRedirectUrl;
+                    }
+                    await this.authFlowCacheProvider.SetAuthFlowAsync(flow.Id, flow);
+                }
+
+                var lastRequest = flow.Requests.LastOrDefault();
+                if (lastRequest?.Response != null)
+                {
+                    this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", requestParameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (lastRequest.Response.TimeCreated - lastRequest.TimeCreated).TotalMilliseconds } });
+                }
+                if (flow.IsComplete)
+                {
+                    flow.TimeCompleted = DateTimeOffset.UtcNow;
+                    this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
+                    if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
+                    {
+                        await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
+                    }
+                }
+
+                // Set the response to the last relevant response received.
+                model.Response = lastRequest.Response;
+            }
+        }
+
+        private async Task HandleResponseCoreAsync(AuthViewModel model, AuthResponseParameters responseParameters)
+        {
+            // We have a response to a previously initiated flow, attempt to determine the flow id from an incoming "State", "RelayState" or "Wctx" parameter.
+            var flowId = default(string);
+            if (responseParameters.State != null && responseParameters.State.StartsWith(Constants.StatePrefixes.Flow))
+            {
+                flowId = responseParameters.State.Substring(Constants.StatePrefixes.Flow.Length);
+            }
+            if (string.IsNullOrWhiteSpace(flowId) && responseParameters.RelayState != null && responseParameters.RelayState.StartsWith(Constants.StatePrefixes.Flow))
+            {
+                flowId = responseParameters.RelayState.Substring(Constants.StatePrefixes.Flow.Length);
+            }
+            if (string.IsNullOrWhiteSpace(flowId) && responseParameters.Wctx != null && responseParameters.Wctx.StartsWith(Constants.StatePrefixes.Flow))
+            {
+                flowId = responseParameters.Wctx.Substring(Constants.StatePrefixes.Flow.Length);
+            }
+
+            // Retrieve the flow details from cache.
+            var flow = default(AuthFlow);
+            var flowReferenceToRemoveFromCacheWhenComplete = default(string);
+            if (!string.IsNullOrWhiteSpace(flowId))
+            {
+                // We have a state correlation id, this a response to an existing request we should have full request details for.
+                // The flow id should be in the State parameter as passed in during the request original.
+                flow = await this.authFlowCacheProvider.GetAuthFlowAsync(flowId);
+                if (flow != null)
+                {
+                    flowReferenceToRemoveFromCacheWhenComplete = flow.Id;
+                }
+                else
+                {
+                    this.logger.LogWarning($"Flow with original request not found for flow id \"{flowId}\".");
+                }
+            }
+
+            // If no flow was found, track it as an externally initiated request.
+            if (flow == null)
+            {
+                // We have a response to a flow that was not originated here (e.g. it could be IdP-initiated).
+                flow = new AuthFlow { UserId = this.User.GetUserId() };
+                this.telemetryClient.TrackEvent("AuthFlow.Initiated", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } });
+                flow.AddExternallyInitiatedRequest();
+            }
+
+            // Check that the request belongs to the current user if signed in.
+            if (!string.IsNullOrWhiteSpace(flow.UserId) && flow.UserId != this.User.GetUserId())
+            {
+                this.logger.LogWarning($"Flow \"{flow.Id}\" was requested by user \"{flow.UserId}\" but a response is now being processed by user \"{this.User.GetUserId()}\".");
+                throw new InvalidOperationException("You don't have permissions to this flow.");
+            }
+
+            var originalRequest = flow.Requests.Last();
+            model.Flow = flow;
+            model.RequestParameters = originalRequest.Parameters;
+
+            // Populate the response from the incoming parameters.
+            var response = AuthResponse.FromAuthResponseParameters(responseParameters);
+            originalRequest.Response = response;
+            this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", originalRequest.Parameters?.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (originalRequest.Response.TimeCreated - originalRequest.TimeCreated).TotalMilliseconds } });
+
+            // If there is an authorization code response, redeem it immediately for the access token.
+            if (!string.IsNullOrWhiteSpace(responseParameters.AuthorizationCode))
+            {
+                if (originalRequest.IsInitiatedExternally)
+                {
+                    originalRequest.Response = AuthResponse.FromError("An authorization code was received but the request was initiated externally, cannot redeem it for an access token.", $"Authorization code: \"{responseParameters.AuthorizationCode}\".");
+                }
+                else
+                {
+                    var authorizationCodeRequestParameters = new AuthRequestParameters(originalRequest.Parameters);
+                    authorizationCodeRequestParameters.RequestType = Constants.RequestTypes.AuthorizationCode;
+                    authorizationCodeRequestParameters.AuthorizationCode = responseParameters.AuthorizationCode;
+                    this.telemetryClient.TrackEvent("AuthRequest.Sent", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequestParameters.RequestType } });
+                    var request = await this.oauth2Handler.HandleAuthorizationCodeResponseAsync(flow, authorizationCodeRequestParameters, originalRequest.CodeVerifier);
+                    this.telemetryClient.TrackEvent("AuthResponse.Received", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", authorizationCodeRequestParameters.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (request.Response.TimeCreated - request.TimeCreated).TotalMilliseconds } });
+                }
+            }
+            flow.IsComplete = true;
+            flow.TimeCompleted = DateTimeOffset.UtcNow;
+            this.telemetryClient.TrackEvent("AuthFlow.Completed", new Dictionary<string, string> { { "AuthFlowId", flow.Id }, { "RequestType", flow.RequestType } }, new Dictionary<string, double> { { "TimeTakenMs", (flow.TimeCompleted.Value - flow.TimeCreated).TotalMilliseconds } });
+            if (flow.IsComplete && !string.IsNullOrEmpty(flowReferenceToRemoveFromCacheWhenComplete))
+            {
+                await this.authFlowCacheProvider.RemoveAuthFlowAsync(flowReferenceToRemoveFromCacheWhenComplete);
+            }
+
+            // Set the response to the last relevant response received.
+            model.Response = flow.Requests.Last().Response;
         }
 
         #endregion

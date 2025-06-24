@@ -28,7 +28,7 @@ namespace Authr.WebApp.Infrastructure
 
             // Get response information.
             var responseLog = new StringBuilder();
-            responseLog.AppendLine($"Status {(int)response.StatusCode} ({response.StatusCode})");
+            responseLog.AppendLine($"HTTP/{response.Version} {(int)response.StatusCode} {response.ReasonPhrase}");
             responseLog.AppendLine(response.Headers.ToString());
             if (response.Content != null)
             {

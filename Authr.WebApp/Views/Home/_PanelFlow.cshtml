@@ -17,7 +17,7 @@
         <div v-if="request.requestedRedirectUrl">Requested Redirect URL: <code>{{ request.requestedRedirectUrl }}</code></div>
         <div v-if="request.response?.httpRequestLog">
             <div>HTTP Request:</div>
-            <div class="card">
+            <div class="card mb-2">
                 <div class="card-body">
                     <pre class="flowMessage"><code>{{ request.response.httpRequestLog }}</code></pre>
                 </div>
@@ -25,7 +25,7 @@
         </div>
         <div v-if="request.parameters">
             <div>Request Parameters:</div>
-            <div class="card">
+            <div class="card mb-2">
                 <div class="card-body">
                     <pre class="flowMessage"><code>{{ request.parameters | trimParameters }}</code></pre>
                 </div>
@@ -33,7 +33,7 @@
         </div>
         <div v-if="request.requestMessage">
             <div>Request Message:</div>
-            <div class="card">
+            <div class="card mb-2">
                 <div class="card-body">
                     <pre class="flowMessage"><code>{{ request.requestMessage }}</code></pre>
                 </div>
@@ -45,14 +45,14 @@
             <div v-if="request.response.timeCreated">Received: <code>{{ request.response.timeCreated | datetime }}</code></div>
             <div v-if="request.response?.httpResponseLog">
                 <div>HTTP Response:</div>
-                <div class="card">
+                <div class="card mb-2">
                     <div class="card-body">
                         <pre class="flowMessage"><code>{{ request.response.httpResponseLog }}</code></pre>
                     </div>
                 </div>
             </div>
             <div>Response Parameters:</div>
-            <div class="card">
+            <div class="card mb-2">
                 <div class="card-body">
                     <pre class="flowMessage"><code>{{ request.response | trimParameters }}</code></pre>
                 </div>

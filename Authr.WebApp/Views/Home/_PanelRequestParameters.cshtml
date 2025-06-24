@@ -35,6 +35,14 @@
                 </div>
             </div>
         </div>
+        <div v-if="requestParameters.requestType === '@Constants.RequestTypes.ClientCredentials' || requestParameters.requestType === '@Constants.RequestTypes.RefreshToken' || requestParameters.requestType === '@Constants.RequestTypes.DeviceCode' || requestParameters.requestType === '@Constants.RequestTypes.DeviceToken' || requestParameters.requestType === '@Constants.RequestTypes.ResourceOwnerPasswordCredentials' || requestParameters.requestType === '@Constants.RequestTypes.AuthorizationCode' || requestParameters.requestType === '@Constants.RequestTypes.OAuth2CustomGrant'">
+            <div class="form-group">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="requestParameters-useDPoP" v-model="requestParameters.useDPoP">
+                    <label class="form-check-label" for="requestParameters-useDPoP">Use Demonstrating Proof of Possession (DPoP)</label>
+                </div>
+            </div>
+        </div>
 
         <div v-if="requestParameters.requestType === '@Constants.RequestTypes.RefreshToken'">
             <div class="form-group">
