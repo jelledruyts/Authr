@@ -36,7 +36,7 @@ namespace Authr.WebApp.Services
                 using (var streamReader = new BinaryReader(certificateBlob.Value.Content))
                 {
                     var certificateBytes = streamReader.ReadBytes((int)certificateBlob.Value.Details.ContentLength);
-                    certificates[name] = new X509Certificate2(certificateBytes, password);
+                    certificates[name] = X509CertificateLoader.LoadPkcs12(certificateBytes, password);
                 }
             }
             return certificates[name];

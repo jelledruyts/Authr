@@ -37,7 +37,7 @@ namespace Authr.WebApp.Services
                     var relativePath = Path.Combine(this.relativeBasePath, path);
                     path = this.fileProvider.GetFileInfo(relativePath).PhysicalPath;
                 }
-                certificates[name] = new X509Certificate2(path, password);
+                certificates[name] = X509CertificateLoader.LoadPkcs12FromFile(path, password);
             }
             return Task.FromResult(certificates[name]);
         }

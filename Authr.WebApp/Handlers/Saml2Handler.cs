@@ -178,13 +178,15 @@ namespace Authr.WebApp.Handlers
 
         private async Task<Saml2Configuration> GetSamlConfigurationAsync()
         {
-            return new Saml2Configuration
+            var encryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate);
+            var configuration = new Saml2Configuration
             {
                 Issuer = this.absoluteUrlProvider.GetAbsoluteRootUrl(),
                 SigningCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.SigningCertificate),
-                EncryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate),
-                DecryptionCertificate = await this.certificateProvider.GetCertificateAsync(Constants.CertificateNames.EncryptionCertificate)
+                EncryptionCertificate = encryptionCertificate
             };
+            configuration.DecryptionCertificates.Add(encryptionCertificate);
+            return configuration;
         }
 
         private async Task<Saml2AuthnRequest> GetSaml2AuthenticationRequestAsync(AuthRequest request)
@@ -238,7 +240,7 @@ namespace Authr.WebApp.Handlers
             };
         }
 
-        private T GetSaml2Binding<T>(AuthRequest request, Saml2Request samlRequest) where T : Saml2Binding<T>, new()
+        private T GetSaml2Binding<T>(AuthRequest request, Saml2Request samlRequest) where T : Saml2Binding, new()
         {
             var binding = new T();
             binding.RelayState = Constants.StatePrefixes.Flow + request.FlowId;
