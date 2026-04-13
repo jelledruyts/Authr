@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches:
-    - main
+      - main
     paths:
-    - 'Authr.WebApp/**'
+      - "Authr.WebApp/**"
 
 permissions:
   id-token: write
@@ -18,32 +18,32 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-    - name: Build Docker Image
-      run: docker build --no-cache --build-arg app_version=1.0.$GITHUB_RUN_NUMBER --build-arg source_version=$GITHUB_SHA -t jelledruyts/authr:latest -f ./Authr.WebApp/.Dockerfile ./Authr.WebApp
-    - name: Push Docker Image to GitHub Package
-      run: |
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-        docker tag jelledruyts/authr:latest ghcr.io/jelledruyts/authr:latest
-        docker push ghcr.io/jelledruyts/authr:latest
-    - name: Azure Login
-      uses: Azure/login@v1
-      with:
-        client-id: 'a96f7b48-548a-4083-8a8a-69440bdc0a4b'
-        tenant-id: 'bfcb8d36-2e08-4142-908c-27eb5be24938'
-        subscription-id: '6c198425-f933-458f-a8f2-951a4c981997'
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
-    - name: Build app
-      run: dotnet build "Authr.WebApp\Authr.WebApp.csproj" --configuration Release
-    - name: Publish app
-      run: |
-        dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
-    - name: Deploy to Azure Web App
-      uses: Azure/webapps-deploy@v2
-      with: 
-        app-name: authr-euw
-        package: ${{ env.DOTNET_ROOT }}/Authr.Website
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build Docker Image
+        run: docker build --no-cache --build-arg app_version=1.0.$GITHUB_RUN_NUMBER --build-arg source_version=$GITHUB_SHA -t jelledruyts/authr:latest -f ./Authr.WebApp/.Dockerfile ./Authr.WebApp
+      - name: Push Docker Image to GitHub Package
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag jelledruyts/authr:latest ghcr.io/jelledruyts/authr:latest
+          docker push ghcr.io/jelledruyts/authr:latest
+      - name: Azure Login
+        uses: Azure/login@v1
+        with:
+          client-id: "a96f7b48-548a-4083-8a8a-69440bdc0a4b"
+          tenant-id: "bfcb8d36-2e08-4142-908c-27eb5be24938"
+          subscription-id: "6c198425-f933-458f-a8f2-951a4c981997"
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build app
+        run: dotnet build "Authr.WebApp\Authr.WebApp.csproj" --configuration Release
+      - name: Publish app
+        run: |
+          dotnet publish "Authr.WebApp\Authr.WebApp.csproj" -c Release -o ${{ env.DOTNET_ROOT }}/Authr.Website
+      - name: Deploy to Azure Web App
+        uses: Azure/webapps-deploy@v2
+        with:
+          app-name: authr-euw
+          package: ${{ env.DOTNET_ROOT }}/Authr.Website
